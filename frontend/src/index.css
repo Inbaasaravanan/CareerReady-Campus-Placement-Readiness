@@ -1,0 +1,10 @@
+@import './styles/variables.css';
+@import './styles/global.css';
+@import './styles/components.css';
+@import './styles/layout.css';
+@import './styles/dashboard.css';
+@import './styles/sidebar.css';
+@import './styles/forms.css';
+@import './styles/tables.css';
+@import './styles/responsive.css';
+@import './styles/quiz.css';

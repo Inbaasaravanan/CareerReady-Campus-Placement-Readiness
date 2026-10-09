@@ -1,0 +1,10 @@
+{
+  "appId": "com.careerready.app",
+  "appName": "CareerReady",
+  "webDir": "dist",
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}
