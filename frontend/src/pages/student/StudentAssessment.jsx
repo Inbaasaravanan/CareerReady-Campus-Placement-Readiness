@@ -255,7 +255,7 @@ export const StudentAssessment = () => {
           Assessment Rules &amp; Evaluation Workflow
         </h3>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+        <div className="dashboard-grid-3">
           <div style={{ padding: '16px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
             <div style={{ fontWeight: 600, color: 'var(--color-navy-900)', fontSize: '0.875rem', marginBottom: '4px' }}>
               Timed Environment

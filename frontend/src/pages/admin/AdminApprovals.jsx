@@ -279,7 +279,7 @@ export const AdminApprovals = () => {
               Registration Details
             </h3>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', rowGap: '12px', fontSize: '0.875rem' }}>
+            <div className="info-details-grid">
               <div style={{ color: 'var(--color-text-muted)' }}>Name:</div>
               <div style={{ fontWeight: 600 }}>{selectedUser.name}</div>
 

@@ -18,6 +18,8 @@ export const AdminUsers = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [editUser, setEditUser] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [feedback, setFeedback] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
   const [newUser, setNewUser] = useState({
     name: '',
     email: '',
@@ -84,12 +86,17 @@ export const AdminUsers = () => {
   };
 
   const handleDeleteUser = async (id, name) => {
-    if (!window.confirm(`Delete user ${name} from MySQL User table?`)) return;
+    if (!window.confirm(`Are you sure you want to delete user "${name}" from MySQL? This action is permanent.`)) return;
+    setActionLoading(true);
+    setFeedback(null);
     try {
       await adminService.deleteUser(id);
+      setFeedback({ type: 'success', text: `User "${name}" was deleted successfully from the database.` });
       await fetchUsers();
     } catch (err) {
-      alert(`Delete user failed: ${err?.message || err}`);
+      setFeedback({ type: 'error', text: err?.message || 'Delete user failed.' });
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -182,7 +189,41 @@ export const AdminUsers = () => {
         }
       />
 
-      <div style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
+      {feedback && (
+        <div
+          style={{
+            padding: '12px 16px',
+            marginBottom: '16px',
+            borderRadius: '8px',
+            backgroundColor: feedback.type === 'error' ? '#fee2e2' : '#dcfce7',
+            color: feedback.type === 'error' ? '#991b1b' : '#166534',
+            border: `1px solid ${feedback.type === 'error' ? '#fca5a5' : '#86efac'}`,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            fontSize: '14px',
+            lineHeight: '1.4'
+          }}
+        >
+          <span>{feedback.text}</span>
+          <button
+            onClick={() => setFeedback(null)}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '16px',
+              color: 'inherit',
+              padding: '0 4px'
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      <div className="filter-bar">
         <div style={{ flex: 1 }}>
           <SearchBar
             placeholder="Search users by name or email..."

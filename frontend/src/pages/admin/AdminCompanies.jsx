@@ -13,6 +13,7 @@ export const AdminCompanies = () => {
   const [error, setError] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState(null);
   const [newCompany, setNewCompany] = useState({
     name: '',
     description: 'Corporate Placement Partner',
@@ -70,13 +71,14 @@ export const AdminCompanies = () => {
   };
 
   const handleDeleteCompany = async (id, name) => {
-    if (!window.confirm(`Are you sure you want to delete ${name} from MySQL database?`)) return;
+    if (!window.confirm(`Are you sure you want to delete ${name} from MySQL database? This action cannot be undone.`)) return;
+    setFeedback(null);
     try {
       await adminService.deleteCompany(id);
-      // Real-time refresh
+      setFeedback({ type: 'success', text: `Company "${name}" was deleted successfully.` });
       await fetchCompanies();
     } catch (err) {
-      alert(`Delete failed: ${err?.message || err}`);
+      setFeedback({ type: 'error', text: err?.message || 'Delete failed.' });
     }
   };
 
@@ -158,6 +160,41 @@ export const AdminCompanies = () => {
         }
       />
 
+      {feedback && (
+        <div
+          style={{
+            padding: '12px 16px',
+            marginBottom: '16px',
+            borderRadius: '8px',
+            backgroundColor: feedback.type === 'error' ? '#fee2e2' : '#dcfce7',
+            color: feedback.type === 'error' ? '#991b1b' : '#166534',
+            border: `1px solid ${feedback.type === 'error' ? '#fca5a5' : '#86efac'}`,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            fontSize: '14px',
+            lineHeight: '1.4'
+          }}
+        >
+          <span>{feedback.text}</span>
+          <button
+            onClick={() => setFeedback(null)}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '16px',
+              color: 'inherit',
+              padding: '0 4px'
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+
       {companies.length === 0 ? (
         <EmptyState
           title="No companies registered in database."
@@ -208,7 +245,7 @@ export const AdminCompanies = () => {
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+          <div className="form-grid-3">
             <div className="form-group">
               <label className="form-label" htmlFor="comp-cgpa">Min CGPA</label>
               <input

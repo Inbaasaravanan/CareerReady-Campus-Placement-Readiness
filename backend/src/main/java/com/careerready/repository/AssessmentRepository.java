@@ -18,7 +18,9 @@ public interface AssessmentRepository extends JpaRepository<Assessment, Long> {
     Optional<Assessment> findTopByStudentIdAndAssessmentTypeAndStatusOrderByCreatedAtDesc(Long studentId, AssessmentType assessmentType, AssessmentStatus status);
 
     long countByStatus(AssessmentStatus status);
+    long countByStudentId(Long studentId);
 
     @Query("SELECT AVG(a.percentage) FROM Assessment a WHERE a.assessmentType = :type AND a.status = 'COMPLETED'")
     Double getAveragePercentageByType(@Param("type") AssessmentType type);
 }
+

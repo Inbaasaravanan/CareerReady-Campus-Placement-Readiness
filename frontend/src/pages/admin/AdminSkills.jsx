@@ -13,6 +13,7 @@ export const AdminSkills = () => {
   const [error, setError] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState(null);
   const [newSkill, setNewSkill] = useState({
     name: '',
     category: 'Programming',
@@ -53,12 +54,14 @@ export const AdminSkills = () => {
   };
 
   const handleDeleteSkill = async (id, name) => {
-    if (!window.confirm(`Delete ${name} from MySQL skill registry?`)) return;
+    if (!window.confirm(`Delete "${name}" from MySQL skill registry? This action cannot be undone.`)) return;
+    setFeedback(null);
     try {
       await adminService.deleteSkill(id);
+      setFeedback({ type: 'success', text: `Skill "${name}" was deleted successfully.` });
       await load();
     } catch (err) {
-      alert(`Delete failed: ${err?.message || err}`);
+      setFeedback({ type: 'error', text: err?.message || 'Delete skill failed.' });
     }
   };
 
@@ -130,6 +133,40 @@ export const AdminSkills = () => {
           </Button>
         }
       />
+
+      {feedback && (
+        <div
+          style={{
+            padding: '12px 16px',
+            marginBottom: '16px',
+            borderRadius: '8px',
+            backgroundColor: feedback.type === 'error' ? '#fee2e2' : '#dcfce7',
+            color: feedback.type === 'error' ? '#991b1b' : '#166534',
+            border: `1px solid ${feedback.type === 'error' ? '#fca5a5' : '#86efac'}`,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            fontSize: '14px',
+            lineHeight: '1.4'
+          }}
+        >
+          <span>{feedback.text}</span>
+          <button
+            onClick={() => setFeedback(null)}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '16px',
+              color: 'inherit',
+              padding: '0 4px'
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {skills.length === 0 ? (
         <EmptyState

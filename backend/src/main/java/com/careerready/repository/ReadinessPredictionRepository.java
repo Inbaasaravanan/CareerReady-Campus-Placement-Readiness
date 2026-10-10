@@ -17,6 +17,7 @@ public interface ReadinessPredictionRepository extends JpaRepository<ReadinessPr
     List<ReadinessPrediction> findByStudentIdOrderByPredictionDateAsc(Long studentId);
 
     long countByClassification(ReadinessClassification classification);
+    long countByStudentId(Long studentId);
 
     @Query("SELECT AVG(rp.readinessScore) FROM ReadinessPrediction rp")
     Double getOverallAverageReadiness();

@@ -183,7 +183,7 @@ export const AssessmentResult = () => {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+        <div className="dashboard-grid-2">
           <div style={{ padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', backgroundColor: isAptitude ? '#F8FAFC' : '#FFFFFF' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <strong style={{ fontSize: '0.9375rem' }}>1. Aptitude Assessment</strong>

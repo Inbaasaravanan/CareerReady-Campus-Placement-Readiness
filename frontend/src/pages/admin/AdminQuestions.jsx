@@ -319,7 +319,7 @@ export const AdminQuestions = () => {
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '14px' }}>
+          <div className="form-grid-2" style={{ marginBottom: '14px' }}>
             <div className="form-group">
               <label className="form-label" htmlFor="edit-opt-a">Option A</label>
               <input
@@ -366,7 +366,7 @@ export const AdminQuestions = () => {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '18px' }}>
+          <div className="dashboard-grid-4" style={{ marginBottom: '18px' }}>
             <div className="form-group">
               <label className="form-label" htmlFor="edit-ans">Correct Answer</label>
               <select

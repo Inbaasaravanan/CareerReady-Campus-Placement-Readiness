@@ -357,7 +357,7 @@ export const RegisterPage = () => {
         </div>
 
         {/* Role Selector Tabs */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginBottom: '22px', backgroundColor: 'var(--color-bg-subtle)', padding: '4px', borderRadius: 'var(--radius-md)' }}>
+        <div className="register-role-tabs" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginBottom: '22px', backgroundColor: 'var(--color-bg-subtle)', padding: '4px', borderRadius: 'var(--radius-md)' }}>
           {[
             { id: 'student', label: 'Student' },
             { id: 'staff', label: 'Placement Staff' },

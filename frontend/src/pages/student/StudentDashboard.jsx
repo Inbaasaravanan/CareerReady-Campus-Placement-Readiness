@@ -102,7 +102,7 @@ export const StudentDashboard = () => {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', position: 'relative' }}>
+        <div className="student-journey-grid">
           {/* Step 1: Assessment Status */}
           <div style={{ padding: '16px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-md)', border: '1.5px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <span style={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-primary)', letterSpacing: '0.04em' }}>
@@ -183,7 +183,7 @@ export const StudentDashboard = () => {
       </div>
 
       {/* Assessment Status Cards Section (Requirement 27) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginBottom: '24px' }}>
+      <div className="student-assessments-grid">
         {/* Aptitude Card */}
         <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px' }}>
           <div>
@@ -262,7 +262,7 @@ export const StudentDashboard = () => {
       </div>
 
       {/* Main Metric Cards (5 Cards) */}
-      <div className="dashboard-grid-4" style={{ gridTemplateColumns: 'repeat(5, 1fr)', marginBottom: '24px' }}>
+      <div className="dashboard-grid-5">
         <StatCard
           label="Readiness Score"
           value={bothTestsCompleted && data.readinessScore !== null ? `${data.readinessScore}%` : 'Pending'}

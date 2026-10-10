@@ -24,4 +24,17 @@ public interface MentorshipAssignmentRepository extends JpaRepository<Mentorship
 
     @Query("SELECT ma FROM MentorshipAssignment ma WHERE ma.staff.user.id = :userId AND ma.active = true")
     List<MentorshipAssignment> findByStaffUserIdAndActiveTrue(@Param("userId") Long userId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("DELETE FROM MentorshipAssignment ma WHERE ma.student.id = :studentId")
+    void deleteByStudentId(@Param("studentId") Long studentId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("DELETE FROM MentorshipAssignment ma WHERE ma.staff.id = :staffId")
+    void deleteByStaffId(@Param("staffId") Long staffId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("UPDATE MentorshipAssignment ma SET ma.assignedBy = null WHERE ma.assignedBy.id = :userId")
+    void clearAssignedByUserId(@Param("userId") Long userId);
 }
+

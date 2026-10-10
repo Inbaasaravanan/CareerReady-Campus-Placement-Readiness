@@ -12,4 +12,6 @@ public interface CompanySkillRepository extends JpaRepository<CompanySkill, Long
     List<CompanySkill> findByCompanyId(Long companyId);
     Optional<CompanySkill> findByCompanyIdAndSkillId(Long companyId, Long skillId);
     void deleteByCompanyId(Long companyId);
+    long countBySkillId(Long skillId);
 }
+

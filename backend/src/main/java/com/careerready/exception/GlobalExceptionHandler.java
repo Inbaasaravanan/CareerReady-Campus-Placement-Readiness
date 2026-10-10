@@ -75,9 +75,25 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(ex.getMessage()));
     }
 
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDataIntegrityViolation(org.springframework.dao.DataIntegrityViolationException ex) {
+        String msg = "Database integrity constraint: This record cannot be deleted or modified because related records depend on it.";
+        if (ex.getMostSpecificCause() != null && ex.getMostSpecificCause().getMessage() != null) {
+            String cause = ex.getMostSpecificCause().getMessage().toLowerCase();
+            if (cause.contains("foreign key constraint fails")) {
+                msg = "Cannot delete this record because other active records depend on it. Please reassign or remove associated records first.";
+            } else if (cause.contains("duplicate entry")) {
+                msg = "A record with this identifier or unique attribute already exists.";
+            }
+        }
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.error(msg));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGlobalException(Exception ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.error("An unexpected error occurred: " + ex.getMessage()));
     }
 }
+

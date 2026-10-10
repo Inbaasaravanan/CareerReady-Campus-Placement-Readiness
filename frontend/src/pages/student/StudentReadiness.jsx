@@ -82,8 +82,8 @@ export const StudentReadiness = () => {
 
       {/* Main Score Banner Card */}
       <div className="card" style={{ marginBottom: '24px', backgroundColor: '#FFFFFF' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr', gap: '32px', alignItems: 'center' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderRight: '1px solid var(--color-border)', paddingRight: '24px' }}>
+        <div className="readiness-main-score-grid">
+          <div className="readiness-score-left">
             <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-primary)' }}>
               Overall Assessment
             </span>
@@ -128,7 +128,7 @@ export const StudentReadiness = () => {
           </span>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+        <div className="readiness-insights-grid">
           {(data.factors || []).map((f, idx) => (
             <div
               key={idx}

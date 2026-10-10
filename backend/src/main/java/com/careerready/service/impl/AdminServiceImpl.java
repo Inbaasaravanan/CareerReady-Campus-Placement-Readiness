@@ -17,6 +17,7 @@ import com.careerready.dto.skill.SkillRequest;
 import com.careerready.dto.student.StudentProfileResponse;
 import com.careerready.entity.Company;
 import com.careerready.entity.CompanySkill;
+import com.careerready.entity.Admin;
 import com.careerready.entity.Department;
 import com.careerready.entity.PlacementHod;
 import com.careerready.entity.PlacementStaff;
@@ -38,13 +39,22 @@ import com.careerready.repository.PlacementStaffRepository;
 import com.careerready.repository.SkillRepository;
 import com.careerready.repository.StudentRepository;
 import com.careerready.repository.UserRepository;
+import com.careerready.repository.AdminRepository;
+import com.careerready.repository.AssessmentRepository;
+import com.careerready.repository.ReadinessPredictionRepository;
+import com.careerready.repository.StudentSkillRepository;
+import com.careerready.repository.StudentAcademicRecordRepository;
+import com.careerready.repository.MentorshipAssignmentRepository;
+import com.careerready.repository.PasswordResetTokenRepository;
 import com.careerready.service.AdminService;
 import com.careerready.service.StudentService;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.Optional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -67,6 +77,14 @@ public class AdminServiceImpl implements AdminService {
     private final PasswordEncoder passwordEncoder;
     private final com.careerready.repository.QuestionRepository questionRepository;
     private final com.careerready.service.EmailService emailService;
+    private final AdminRepository adminRepository;
+    private final AssessmentRepository assessmentRepository;
+    private final ReadinessPredictionRepository readinessPredictionRepository;
+    private final StudentSkillRepository studentSkillRepository;
+    private final StudentAcademicRecordRepository studentAcademicRecordRepository;
+    private final MentorshipAssignmentRepository mentorshipAssignmentRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final EntityManager entityManager;
 
     // --- USERS ---
     @Override
@@ -136,10 +154,70 @@ public class AdminServiceImpl implements AdminService {
     @Override
     @Transactional
     public void deleteUser(Long id) {
-        if (!userRepository.existsById(id)) {
-            throw new ResourceNotFoundException("User not found with id: " + id);
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+
+        // 1. Prevent deleting primary administrator
+        if ("inbaasara@gmail.com".equalsIgnoreCase(user.getEmail()) ||
+                (user.getRole() == Role.ADMIN && userRepository.countByRole(Role.ADMIN) <= 1)) {
+            throw new BadRequestException("The primary administrator account cannot be deleted.");
         }
-        userRepository.deleteById(id);
+
+        // 2. Disassociate or validate Student profile
+        Optional<Student> studentOpt = studentRepository.findByUserId(id);
+        if (studentOpt.isPresent()) {
+            Student student = studentOpt.get();
+            long assessmentCount = assessmentRepository.countByStudentId(student.getId());
+            long predictionCount = readinessPredictionRepository.countByStudentId(student.getId());
+            if (assessmentCount > 0 || predictionCount > 0) {
+                throw new BadRequestException("Cannot delete student '" + user.getName() + "' because they have "
+                        + assessmentCount + " assessment(s) and " + predictionCount + " readiness prediction(s). "
+                        + "Deleting would compromise academic evaluation integrity. Please set their account status to Inactive instead.");
+            }
+            try {
+                entityManager.createNativeQuery("DELETE FROM ai_interactions WHERE student_id = :studentId")
+                        .setParameter("studentId", student.getId())
+                        .executeUpdate();
+            } catch (Exception ignored) {}
+            studentSkillRepository.deleteByStudentId(student.getId());
+            studentAcademicRecordRepository.deleteByStudentId(student.getId());
+            mentorshipAssignmentRepository.deleteByStudentId(student.getId());
+            studentRepository.delete(student);
+        }
+
+        // 3. Disassociate or validate Placement Staff profile
+        Optional<PlacementStaff> staffOpt = staffRepository.findByUserId(id);
+        if (staffOpt.isPresent()) {
+            PlacementStaff staff = staffOpt.get();
+            long assignedCount = studentRepository.countByAssignedStaffId(staff.getId());
+            if (assignedCount > 0) {
+                throw new BadRequestException("Cannot delete staff member '" + user.getName() + "' because "
+                        + assignedCount + " student(s) are currently assigned to them. Please reassign the students before deleting, or set the account status to Inactive.");
+            }
+            mentorshipAssignmentRepository.deleteByStaffId(staff.getId());
+            staffRepository.delete(staff);
+        }
+
+        // 4. Disassociate Placement HOD profile
+        Optional<PlacementHod> hodOpt = hodRepository.findByUserId(id);
+        if (hodOpt.isPresent()) {
+            hodRepository.delete(hodOpt.get());
+        }
+
+        // 5. Disassociate Admin record
+        Optional<Admin> adminOpt = adminRepository.findByUserId(id);
+        if (adminOpt.isPresent()) {
+            adminRepository.delete(adminOpt.get());
+        }
+
+        // 6. Unlink any mentorship assignments created by this user
+        mentorshipAssignmentRepository.clearAssignedByUserId(id);
+
+        // 7. Delete any password reset tokens
+        passwordResetTokenRepository.deleteByUserId(id);
+
+        // 8. Delete user record
+        userRepository.delete(user);
     }
 
     // --- STUDENTS ---
@@ -156,7 +234,32 @@ public class AdminServiceImpl implements AdminService {
     public void deleteStudent(Long id) {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + id));
+
+        long assessmentCount = assessmentRepository.countByStudentId(student.getId());
+        long predictionCount = readinessPredictionRepository.countByStudentId(student.getId());
+        if (assessmentCount > 0 || predictionCount > 0) {
+            throw new BadRequestException("Cannot delete student '" + (student.getUser() != null ? student.getUser().getName() : "ID " + id) + "' because they have "
+                    + assessmentCount + " assessment(s) and " + predictionCount + " readiness prediction(s). "
+                    + "Deleting would compromise academic evaluation integrity. Please set their account status to Inactive instead.");
+        }
+
+        try {
+            entityManager.createNativeQuery("DELETE FROM ai_interactions WHERE student_id = :studentId")
+                    .setParameter("studentId", student.getId())
+                    .executeUpdate();
+        } catch (Exception ignored) {}
+        studentSkillRepository.deleteByStudentId(student.getId());
+        studentAcademicRecordRepository.deleteByStudentId(student.getId());
+        mentorshipAssignmentRepository.deleteByStudentId(student.getId());
+
+        User user = student.getUser();
         studentRepository.delete(student);
+
+        if (user != null) {
+            passwordResetTokenRepository.deleteByUserId(user.getId());
+            mentorshipAssignmentRepository.clearAssignedByUserId(user.getId());
+            userRepository.delete(user);
+        }
     }
 
     // --- STAFF ---
@@ -366,7 +469,22 @@ public class AdminServiceImpl implements AdminService {
     public void deleteStaff(Long id) {
         PlacementStaff staff = staffRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Staff not found with id: " + id));
+
+        long assignedCount = studentRepository.countByAssignedStaffId(staff.getId());
+        if (assignedCount > 0) {
+            throw new BadRequestException("Cannot delete staff member '" + (staff.getUser() != null ? staff.getUser().getName() : "ID " + id) + "' because "
+                    + assignedCount + " student(s) are currently assigned to them. Please reassign the students before deleting, or set the account status to Inactive.");
+        }
+
+        mentorshipAssignmentRepository.deleteByStaffId(staff.getId());
+        User user = staff.getUser();
         staffRepository.delete(staff);
+
+        if (user != null) {
+            passwordResetTokenRepository.deleteByUserId(user.getId());
+            mentorshipAssignmentRepository.clearAssignedByUserId(user.getId());
+            userRepository.delete(user);
+        }
     }
 
     // --- HOD ---
@@ -586,7 +704,14 @@ public class AdminServiceImpl implements AdminService {
     public void deleteHod(Long id) {
         PlacementHod hod = hodRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("HOD not found with id: " + id));
+        User user = hod.getUser();
         hodRepository.delete(hod);
+
+        if (user != null) {
+            passwordResetTokenRepository.deleteByUserId(user.getId());
+            mentorshipAssignmentRepository.clearAssignedByUserId(user.getId());
+            userRepository.delete(user);
+        }
     }
 
     // --- DEPARTMENTS ---
@@ -676,10 +801,16 @@ public class AdminServiceImpl implements AdminService {
     @Override
     @Transactional
     public void deleteDepartment(Long id) {
-        if (!departmentRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Department not found with id: " + id);
+        Department dept = departmentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Department not found with id: " + id));
+
+        long studentCount = studentRepository.countByDepartmentId(id);
+        long staffCount = staffRepository.findByDepartmentId(id).size();
+        if (studentCount > 0 || staffCount > 0) {
+            throw new BadRequestException("Cannot delete department '" + dept.getName() + "' because "
+                    + studentCount + " enrolled student(s) and " + staffCount + " assigned staff member(s) belong to it. Please reassign them before deletion, or set department status to Inactive.");
         }
-        departmentRepository.deleteById(id);
+        departmentRepository.delete(dept);
     }
 
     // --- COMPANIES ---
@@ -807,10 +938,16 @@ public class AdminServiceImpl implements AdminService {
     @Override
     @Transactional
     public void deleteSkill(Long id) {
-        if (!skillRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Skill not found with id: " + id);
+        Skill skill = skillRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Skill not found with id: " + id));
+
+        long studentSkills = studentSkillRepository.countBySkillId(id);
+        long companySkills = companySkillRepository.countBySkillId(id);
+        if (studentSkills > 0 || companySkills > 0) {
+            throw new BadRequestException("Cannot delete skill '" + skill.getName() + "' because it is linked to "
+                    + studentSkills + " student profile(s) and " + companySkills + " company requirement(s).");
         }
-        skillRepository.deleteById(id);
+        skillRepository.delete(skill);
     }
 
     private void saveCompanySkills(Company company, List<CompanySkillRequirementDto> reqDtos) {

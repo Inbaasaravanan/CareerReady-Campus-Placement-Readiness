@@ -19,4 +19,9 @@ public interface PasswordResetTokenRepository extends JpaRepository<PasswordRese
     List<PasswordResetToken> findByUser(User user);
 
     void deleteByExpiryDateBefore(LocalDateTime dateTime);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query("DELETE FROM PasswordResetToken prt WHERE prt.user.id = :userId")
+    void deleteByUserId(@org.springframework.data.repository.query.Param("userId") Long userId);
 }
+

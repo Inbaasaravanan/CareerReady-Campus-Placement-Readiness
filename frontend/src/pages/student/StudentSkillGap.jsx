@@ -484,7 +484,7 @@ export const StudentSkillGap = () => {
             />
           ) : (
             /* Clear Skill-Focused Containers */
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '18px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: '18px' }}>
               {filteredSkills.map((item, idx) => {
                 const isMissing = item.status === 'MISSING';
                 const isNeedsImp = item.status === 'NEEDS_IMPROVEMENT';

@@ -88,7 +88,7 @@ export const StaffDashboard = () => {
       />
 
       {/* Core Monitoring Stats Grid */}
-      <div className="dashboard-grid-4" style={{ gridTemplateColumns: 'repeat(6, 1fr)', marginBottom: '24px' }}>
+      <div className="dashboard-grid-6">
         <StatCard
           label="Total Students"
           value={totalStudents}

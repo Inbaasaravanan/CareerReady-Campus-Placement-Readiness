@@ -17,6 +17,9 @@ public interface StudentSkillRepository extends JpaRepository<StudentSkill, Long
     @Query("DELETE FROM StudentSkill ss WHERE ss.student.id = :studentId")
     void deleteByStudentId(@Param("studentId") Long studentId);
 
+    long countBySkillId(Long skillId);
+
     @Query("SELECT ss.skill.name, COUNT(ss) FROM StudentSkill ss WHERE ss.currentLevel = 'BEGINNER' GROUP BY ss.skill.name ORDER BY COUNT(ss) DESC")
     List<Object[]> findMostCommonSkillGaps();
 }
+

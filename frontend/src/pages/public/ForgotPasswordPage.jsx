@@ -74,7 +74,7 @@ export const ForgotPasswordPage = () => {
         </div>
 
         {/* Role Quick Selector Tabs */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginBottom: '24px', backgroundColor: 'var(--color-bg-subtle)', padding: '4px', borderRadius: 'var(--radius-md)' }}>
+        <div className="forgot-role-tabs" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginBottom: '24px', backgroundColor: 'var(--color-bg-subtle)', padding: '4px', borderRadius: 'var(--radius-md)' }}>
           {ROLE_OPTIONS.map((item) => (
             <button
               key={item.id}

@@ -598,7 +598,7 @@ export const AdminHod = () => {
             </Button>
           }
         >
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', rowGap: '12px', fontSize: '0.875rem' }}>
+          <div className="info-details-grid">
             <div style={{ color: 'var(--color-text-muted)' }}>Officer Name:</div>
             <div style={{ fontWeight: 600 }}>{detailsModalUser.name}</div>
 

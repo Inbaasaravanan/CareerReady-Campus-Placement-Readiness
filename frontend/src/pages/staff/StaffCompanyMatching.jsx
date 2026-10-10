@@ -597,7 +597,7 @@ export const StaffCompanyMatching = () => {
           description="There are currently no partner companies configured in the MySQL Company table."
         />
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: '20px' }}>
           {companies.map((c, idx) => {
             const compId = c.companyId || c.id || idx + 1;
             const compName = c.companyName || c.company || c.name;
