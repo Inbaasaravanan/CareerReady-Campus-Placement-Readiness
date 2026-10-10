@@ -1,0 +1,6 @@
+﻿{
+    "mode":  "mobile-demonstration",
+    "backendPort":  8080,
+    "lanIp":  "192.168.29.142",
+    "apiUrl":  "http://192.168.29.142:8080/api"
+}

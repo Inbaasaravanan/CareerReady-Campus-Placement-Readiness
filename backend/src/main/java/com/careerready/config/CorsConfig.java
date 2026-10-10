@@ -24,7 +24,8 @@ public class CorsConfig {
                 .map(String::trim)
                 .toList();
 
-        configuration.setAllowedOrigins(origins);
+        // Allow localhost, any LAN IPv4 address, and Capacitor native origins with credentials
+        configuration.setAllowedOriginPatterns(List.of("*"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With", "Origin"));
         configuration.setExposedHeaders(List.of("Authorization"));
