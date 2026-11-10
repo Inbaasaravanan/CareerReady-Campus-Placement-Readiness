@@ -33,7 +33,8 @@ export const AdminApprovals = () => {
 
   const handleApprove = async (user) => {
     const targetId = user.userId || user.id;
-    if (!window.confirm(`Are you sure you want to APPROVE ${user.name} (${user.role === 'PLACEMENT_STAFF' ? 'Placement Staff' : 'Placement HOD'})?`)) {
+    const roleLabel = user.role === 'ADMIN' ? 'Administrator' : (user.role === 'PLACEMENT_STAFF' ? 'Placement Staff' : 'Placement HOD');
+    if (!window.confirm(`Are you sure you want to APPROVE ${user.name} (${roleLabel})?`)) {
       return;
     }
     setProcessingId(targetId);
@@ -98,7 +99,7 @@ export const AdminApprovals = () => {
           <span className="table-cell-bold">{val}</span>
           {(row.identifier || row.employeeId || row.institutionalId) && (
             <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', fontFamily: 'monospace' }}>
-              {row.role === 'PLACEMENT_HOD' ? 'INST ID: ' : 'EMP ID: '}
+              {row.role === 'ADMIN' ? 'REQ ID: ' : (row.role === 'PLACEMENT_HOD' ? 'INST ID: ' : 'EMP ID: ')}
               {row.identifier || row.employeeId || row.institutionalId}
             </div>
           )}
@@ -116,8 +117,8 @@ export const AdminApprovals = () => {
       sortable: true,
       render: (val, row) => (
         <div>
-          <Badge variant={val === 'PLACEMENT_STAFF' ? 'info' : 'warning'}>
-            {val === 'PLACEMENT_STAFF' ? 'Placement Staff' : val === 'PLACEMENT_HOD' ? 'Placement HOD' : val}
+          <Badge variant={val === 'ADMIN' ? 'danger' : (val === 'PLACEMENT_STAFF' ? 'info' : 'warning')}>
+            {val === 'ADMIN' ? 'Administrator' : (val === 'PLACEMENT_STAFF' ? 'Placement Staff' : (val === 'PLACEMENT_HOD' ? 'Placement HOD' : val))}
           </Badge>
           {row.departmentAuthority && (
             <div style={{ fontSize: '0.6875rem', color: 'var(--color-navy-900)', marginTop: '2px', fontWeight: 600 }}>
@@ -215,7 +216,7 @@ export const AdminApprovals = () => {
     <div>
       <PageHeader
         title="Account Approvals"
-        subtitle="Review, approve, or reject pending Placement Staff and Placement HOD account registrations."
+        subtitle="Review, approve, or reject pending Staff, HOD, and Administrator account registrations."
       />
 
       {actionMessage && (
@@ -246,7 +247,7 @@ export const AdminApprovals = () => {
       {pendingUsers.length === 0 ? (
         <EmptyState
           title="No Pending Approvals"
-          message="All staff and HOD registration requests have been reviewed. There are no pending accounts requiring administrator action."
+          message="All staff, HOD, and administrator registration requests have been reviewed. There are no pending accounts requiring administrator action."
         />
       ) : (
         <DataTable columns={columns} data={pendingUsers} pageSize={10} />
@@ -288,16 +289,18 @@ export const AdminApprovals = () => {
 
               <div style={{ color: 'var(--color-text-muted)' }}>Role:</div>
               <div>
-                <Badge variant={selectedUser.role === 'PLACEMENT_STAFF' ? 'info' : 'warning'}>
-                  {selectedUser.role === 'PLACEMENT_STAFF' ? 'Placement Staff' : 'Placement HOD'}
+                <Badge variant={selectedUser.role === 'ADMIN' ? 'danger' : (selectedUser.role === 'PLACEMENT_STAFF' ? 'info' : 'warning')}>
+                  {selectedUser.role === 'ADMIN' ? 'Administrator' : (selectedUser.role === 'PLACEMENT_STAFF' ? 'Placement Staff' : 'Placement HOD')}
                 </Badge>
               </div>
 
               <div style={{ color: 'var(--color-text-muted)' }}>Department:</div>
-              <div>{selectedUser.departmentName || 'Not assigned'}</div>
+              <div>{selectedUser.departmentName || (selectedUser.role === 'ADMIN' ? 'System Administration' : 'Not assigned')}</div>
 
-              <div style={{ color: 'var(--color-text-muted)' }}>Employee ID:</div>
-              <div>{selectedUser.employeeId || 'Not provided'}</div>
+              <div style={{ color: 'var(--color-text-muted)' }}>
+                {selectedUser.role === 'ADMIN' ? 'Request ID:' : (selectedUser.role === 'PLACEMENT_HOD' ? 'Institutional ID:' : 'Employee ID:')}
+              </div>
+              <div>{selectedUser.identifier || selectedUser.employeeId || selectedUser.institutionalId || 'Not provided'}</div>
 
               <div style={{ color: 'var(--color-text-muted)' }}>Phone:</div>
               <div>{selectedUser.phone || 'Not provided'}</div>

@@ -254,6 +254,7 @@ export const RegisterPage = () => {
 
   const handleStaffSubmit = async (e) => {
     e.preventDefault();
+    if (staffSubmitting) return;
     setError('');
     setSuccess('');
 
@@ -278,6 +279,10 @@ export const RegisterPage = () => {
         setError('Employee ID is mandatory for Placement Staff registration.');
         return;
       }
+      if (!staffFormData.departmentId) {
+        setError('Please select an authorized Department.');
+        return;
+      }
     } else if (activeRole === 'hod') {
       if (!staffFormData.institutionalId || !staffFormData.institutionalId.trim()) {
         setError('Institutional ID is mandatory for Placement HOD registration.');
@@ -287,11 +292,10 @@ export const RegisterPage = () => {
         setError('Department Authority is mandatory for Placement HOD registration.');
         return;
       }
-    }
-
-    if (!staffFormData.departmentId) {
-      setError('Please select an authorized Department.');
-      return;
+      if (!staffFormData.departmentId) {
+        setError('Please select an authorized Department.');
+        return;
+      }
     }
 
     if (!staffFormData.password || staffFormData.password.length < 6) {
@@ -309,15 +313,16 @@ export const RegisterPage = () => {
       let res;
       if (activeRole === 'staff') {
         res = await authService.registerStaff(staffFormData);
-      } else {
+      } else if (activeRole === 'hod') {
         res = await authService.registerHod(staffFormData);
       }
 
       if (res && res.success) {
-        setSuccess('Registration submitted successfully. Your account is waiting for Admin approval.');
+        const successMsg = 'Registration submitted successfully. Your account is waiting for Admin approval.';
+        setSuccess(successMsg);
         setTimeout(() => {
           navigate('/login', {
-            state: { message: 'Registration submitted successfully. Your account is waiting for Admin approval.' }
+            state: { message: successMsg }
           });
         }, 2000);
       }
@@ -433,68 +438,68 @@ export const RegisterPage = () => {
             </div>
 
             <div className="form-grid-2">
-              <div className="form-group">
-                <label className="form-label" htmlFor="staff-dept">
-                  Department <span style={{ color: '#EF4444' }}>*</span>
-                </label>
-                <select
-                  id="staff-dept"
-                  name="departmentId"
-                  className="select-control"
-                  value={staffFormData.departmentId}
-                  onChange={handleStaffChange}
-                  required
-                >
-                  {departmentsList.length > 0 ? (
-                    departmentsList.map((d) => (
-                      <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
-                    ))
-                  ) : (
-                    <>
-                      <option value="1">Computer Science and Engineering (CSE)</option>
-                      <option value="2">Information Technology (IT)</option>
-                      <option value="3">Electronics and Communication Engineering (ECE)</option>
-                      <option value="4">Electrical and Electronics Engineering (EEE)</option>
-                      <option value="5">Mechanical Engineering (MECH)</option>
-                    </>
-                  )}
-                </select>
-              </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="staff-dept">
+                    Department <span style={{ color: '#EF4444' }}>*</span>
+                  </label>
+                  <select
+                    id="staff-dept"
+                    name="departmentId"
+                    className="select-control"
+                    value={staffFormData.departmentId}
+                    onChange={handleStaffChange}
+                    required
+                  >
+                    {departmentsList.length > 0 ? (
+                      departmentsList.map((d) => (
+                        <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
+                      ))
+                    ) : (
+                      <>
+                        <option value="1">Computer Science and Engineering (CSE)</option>
+                        <option value="2">Information Technology (IT)</option>
+                        <option value="3">Electronics and Communication Engineering (ECE)</option>
+                        <option value="4">Electrical and Electronics Engineering (EEE)</option>
+                        <option value="5">Mechanical Engineering (MECH)</option>
+                      </>
+                    )}
+                  </select>
+                </div>
 
-              {activeRole === 'staff' ? (
-                <div className="form-group">
-                  <label className="form-label" htmlFor="staff-empid">
-                    Employee ID <span style={{ color: '#EF4444' }}>*</span>
-                  </label>
-                  <input
-                    id="staff-empid"
-                    name="employeeId"
-                    type="text"
-                    className="input-control"
-                    placeholder="e.g. EMP-STF-102"
-                    value={staffFormData.employeeId}
-                    onChange={handleStaffChange}
-                    required
-                  />
-                </div>
-              ) : (
-                <div className="form-group">
-                  <label className="form-label" htmlFor="hod-instid">
-                    Institutional ID <span style={{ color: '#EF4444' }}>*</span>
-                  </label>
-                  <input
-                    id="hod-instid"
-                    name="institutionalId"
-                    type="text"
-                    className="input-control"
-                    placeholder="e.g. INST-HOD-001"
-                    value={staffFormData.institutionalId}
-                    onChange={handleStaffChange}
-                    required
-                  />
-                </div>
-              )}
-            </div>
+                {activeRole === 'staff' ? (
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="staff-empid">
+                      Employee ID <span style={{ color: '#EF4444' }}>*</span>
+                    </label>
+                    <input
+                      id="staff-empid"
+                      name="employeeId"
+                      type="text"
+                      className="input-control"
+                      placeholder="e.g. EMP-STF-102"
+                      value={staffFormData.employeeId}
+                      onChange={handleStaffChange}
+                      required
+                    />
+                  </div>
+                ) : (
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="hod-instid">
+                      Institutional ID <span style={{ color: '#EF4444' }}>*</span>
+                    </label>
+                    <input
+                      id="hod-instid"
+                      name="institutionalId"
+                      type="text"
+                      className="input-control"
+                      placeholder="e.g. INST-HOD-001"
+                      value={staffFormData.institutionalId}
+                      onChange={handleStaffChange}
+                      required
+                    />
+                  </div>
+                )}
+              </div>
 
             {activeRole === 'hod' && (
               <div className="form-group">
@@ -564,7 +569,7 @@ export const RegisterPage = () => {
             </div>
 
             <div style={{ padding: '12px', backgroundColor: '#F8FAFC', borderRadius: 'var(--radius-md)', border: '1px solid #E2E8F0', marginBottom: '16px', fontSize: '0.75rem', color: '#64748B' }}>
-              <strong>Notice:</strong> All {activeRole === 'staff' ? 'Placement Staff' : 'Placement HOD'} accounts require administrative verification. Once submitted, your profile will be placed in <em>PENDING</em> status until an administrator activates your credentials.
+              <strong>Notice:</strong> All {activeRole === 'staff' ? 'Placement Staff' : 'Placement HOD'} accounts require verification and approval. Once submitted, your profile will be placed in <em>PENDING</em> status until the designated administrator approves your request.
             </div>
 
             <Button
@@ -573,7 +578,11 @@ export const RegisterPage = () => {
               disabled={staffSubmitting}
               style={{ width: '100%', marginTop: '6px' }}
             >
-              {staffSubmitting ? 'Submitting Registration...' : activeRole === 'staff' ? 'Register as Placement Staff' : 'Register as Placement HOD'}
+              {staffSubmitting
+                ? 'Submitting Registration...'
+                : activeRole === 'staff'
+                ? 'Register as Placement Staff'
+                : 'Register as Placement HOD'}
             </Button>
           </form>
         )}

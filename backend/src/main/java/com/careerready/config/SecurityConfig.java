@@ -59,6 +59,9 @@ public class SecurityConfig {
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(authenticationEntryPoint))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // Role-restricted admin self-registration (prevent public unauthorized self-registration)
+                        .requestMatchers(HttpMethod.POST, "/api/auth/register/admin").hasRole("ADMIN")
+
                         // Public endpoints
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/health").permitAll()
@@ -77,6 +80,7 @@ public class SecurityConfig {
                         // Role-restricted endpoints
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/staff/**").hasAnyRole("PLACEMENT_STAFF", "PLACEMENT_HOD", "ADMIN")
+                        .requestMatchers("/api/hod/analytics/departments").hasAnyRole("PLACEMENT_STAFF", "PLACEMENT_HOD", "ADMIN")
                         .requestMatchers("/api/hod/**").hasAnyRole("PLACEMENT_HOD", "ADMIN")
 
                         // Authenticated endpoints

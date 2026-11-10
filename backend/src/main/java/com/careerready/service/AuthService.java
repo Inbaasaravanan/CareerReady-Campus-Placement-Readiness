@@ -14,6 +14,8 @@ public interface AuthService {
 
     void registerHod(com.careerready.dto.auth.HodRegisterRequest request);
 
+    void registerAdmin(com.careerready.dto.auth.AdminRegisterRequest request);
+
     java.util.List<com.careerready.dto.admin.DepartmentDto> getPublicDepartments();
     void processForgotPassword(com.careerready.dto.auth.ForgotPasswordRequest request);
     void verifyResetToken(String token);

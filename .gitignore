@@ -1,35 +1,30 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
+# React
+node_modules/
+dist/
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# Build outputs
+# Java / Maven
 target/
-*.class
 
-# Environment and Secret Configuration
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Android generated files
+.gradle/
+local.properties
+*.apk
+*.aab
+
+# IDE
+.idea/
+.vscode/
+
+# Backup folders
+.backup_approval_improvements/
+.backup_notifications_ip_workflow/
+
+# Secrets
 .env
-*.env
-.env.local
-application-local.properties
-secrets.properties
+*.log

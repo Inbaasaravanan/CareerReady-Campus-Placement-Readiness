@@ -39,7 +39,10 @@ import com.careerready.dto.auth.ResetPasswordRequest;
 import com.careerready.entity.PasswordResetToken;
 import com.careerready.repository.PasswordResetTokenRepository;
 import com.careerready.service.EmailService;
+import com.careerready.service.StaffApprovalService;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import java.util.UUID;
 import java.util.ArrayList;
 import java.util.List;
@@ -62,6 +65,8 @@ public class AuthServiceImpl implements AuthService {
     private final com.careerready.repository.PlacementHodRepository hodRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final EmailService emailService;
+    private final StaffApprovalService staffApprovalService;
+    private final StaffRegistrationNotificationDispatcher staffNotificationDispatcher;
 
     @Value("${app.reset-password.token-expiration-minutes:30}")
     private int tokenExpirationMinutes;
@@ -158,6 +163,84 @@ public class AuthServiceImpl implements AuthService {
 
         staffRepository.save(staff);
         log.info("Registered Placement Staff account for {} (Employee ID: {}) with status PENDING_APPROVAL", email, employeeId);
+
+        // Generate cryptographically secure, single-use token pair (APPROVE and REJECT)
+        StaffApprovalService.TokenPair tokens = staffApprovalService.generateTokensForStaff(user);
+
+        String baseUrl = (frontendUrl != null && !frontendUrl.isBlank()) ? frontendUrl.replaceAll("/+$", "") : "http://localhost:5173";
+        String approveUrl = baseUrl + "/approval/confirm?token=" + tokens.approveToken();
+        String rejectUrl = baseUrl + "/approval/confirm?token=" + tokens.rejectToken();
+
+        final String applicantName = user.getName();
+        final String applicantEmail = user.getEmail();
+        final String empId = staff.getEmployeeId();
+        final String deptName = department.getName();
+        final String contactPhone = staff.getPhone();
+        final LocalDateTime regTime = user.getCreatedAt() != null ? user.getCreatedAt() : LocalDateTime.now();
+
+        // CRITICAL PERFORMANCE & RELIABILITY FIX:
+        // Dispatch email notification ASYNCHRONOUSLY AFTER transaction commits safely.
+        // The HTTP registration endpoint returns immediately (< 200ms) rather than blocking 3-10s for SMTP.
+        // If SMTP delivery temporarily fails, the pending registration is safely preserved in MySQL.
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    staffNotificationDispatcher.dispatchNotificationAsync(
+                            applicantName,
+                            applicantEmail,
+                            empId,
+                            deptName,
+                            contactPhone,
+                            regTime,
+                            approveUrl,
+                            rejectUrl
+                    );
+                }
+            });
+        } else {
+            staffNotificationDispatcher.dispatchNotificationAsync(
+                    applicantName,
+                    applicantEmail,
+                    empId,
+                    deptName,
+                    contactPhone,
+                    regTime,
+                    approveUrl,
+                    rejectUrl
+            );
+        }
+    }
+
+    @Override
+    @Transactional
+    public void registerAdmin(com.careerready.dto.auth.AdminRegisterRequest request) {
+        String email = request.getEmail().trim().toLowerCase();
+        if (userRepository.existsByEmail(email)) {
+            throw new DuplicateResourceException("Email already registered: " + email);
+        }
+
+        User user = User.builder()
+                .name(request.getName().trim())
+                .email(email)
+                .password(passwordEncoder.encode(request.getPassword()))
+                .role(Role.ADMIN)
+                .status(UserStatus.PENDING_APPROVAL)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        user = userRepository.save(user);
+        log.info("Registered Administrator account for {} with status PENDING_APPROVAL", email);
+
+        boolean emailSent = emailService.sendAdminRegistrationNotification(
+                user.getName(),
+                user.getEmail(),
+                "Administrator",
+                "ADMIN-REQ-" + user.getId(),
+                "System Administration",
+                request.getPhone() != null ? request.getPhone().trim() : null
+        );
+        log.info("Notification email to inbaasara@gmail.com for Administrator registration {}: {}", email, emailSent ? "SUCCESS" : "FAILED/QUEUED");
     }
 
     @Override
@@ -208,6 +291,38 @@ public class AuthServiceImpl implements AuthService {
 
         hodRepository.save(hod);
         log.info("Registered Placement HOD account for {} (Institutional ID: {}) with status PENDING_APPROVAL", email, institutionalId);
+
+        final String applicantName = user.getName();
+        final String applicantEmail = user.getEmail();
+        final String instId = hod.getInstitutionalId();
+        final String deptName = department.getName();
+        final String contactPhone = hod.getPhone();
+        final LocalDateTime regTime = user.getCreatedAt() != null ? user.getCreatedAt() : LocalDateTime.now();
+
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    staffNotificationDispatcher.dispatchHodNotificationAsync(
+                            applicantName,
+                            applicantEmail,
+                            instId,
+                            deptName,
+                            contactPhone,
+                            regTime
+                    );
+                }
+            });
+        } else {
+            staffNotificationDispatcher.dispatchHodNotificationAsync(
+                    applicantName,
+                    applicantEmail,
+                    instId,
+                    deptName,
+                    contactPhone,
+                    regTime
+            );
+        }
     }
 
     @Override

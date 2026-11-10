@@ -6,6 +6,7 @@ import { Button } from '../../components/common/Button';
 import { useCms } from '../../context/CmsContext';
 import { EyeIcon, EyeOffIcon } from '../../components/common/Icons';
 import { getServerAddress, setServerAddress, resetServerAddress, checkBackendHealth } from '../../services/api';
+import { Capacitor } from '@capacitor/core';
 
 const ROLE_TO_API_MAP = {
   student: 'STUDENT',
@@ -26,6 +27,12 @@ export const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState(location.state?.message || '');
+
+  // Platform detection: render IP config exclusively in native Android/mobile app (Capacitor)
+  // Hidden completely on normal laptop and mobile browser website (where isNativePlatform() is false)
+  const isNativeApp = typeof Capacitor !== 'undefined' &&
+    typeof Capacitor.isNativePlatform === 'function' &&
+    Capacitor.isNativePlatform();
 
   // Mobile / Local network server connectivity state
   const [showServerModal, setShowServerModal] = useState(false);
@@ -70,7 +77,7 @@ export const LoginPage = () => {
   return (
     <div style={{ minHeight: 'calc(100vh - 160px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 16px', backgroundColor: 'var(--color-bg-app)' }}>
       <div className="card" style={{ width: '100%', maxWidth: '460px', padding: '36px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
           <Logo variant="light" />
           <h2 style={{ fontSize: '1.375rem', fontWeight: 700, marginTop: '16px', color: 'var(--color-navy-950)' }}>
             {cms('login.title', 'Sign In to Placement Portal')}
@@ -240,18 +247,21 @@ export const LoginPage = () => {
           </div>
         )}
 
-        <div style={{ textAlign: 'center', marginTop: '16px', paddingTop: '12px', borderTop: '1px solid var(--color-border)', fontSize: '0.75rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-          <span>Server: <code style={{ background: 'var(--color-bg-secondary)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.72rem' }}>{currentServer}</code></span>
-          <button
-            type="button"
-            onClick={() => { setCustomServerInput(currentServer); setServerTestStatus(null); setShowServerModal(true); }}
-            style={{ background: 'none', border: 'none', color: 'var(--color-primary)', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.75rem', fontWeight: 600, padding: 0 }}
-          >
-            Config
-          </button>
-        </div>
+        {/* Server IP Configuration - Shown ONLY on Android native app, hidden completely on laptop website */}
+        {isNativeApp && (
+          <div style={{ textAlign: 'center', marginTop: '16px', paddingTop: '12px', borderTop: '1px solid var(--color-border)', fontSize: '0.75rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+            <span>Server: <code style={{ background: 'var(--color-bg-secondary)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.72rem' }}>{currentServer}</code></span>
+            <button
+              type="button"
+              onClick={() => { setCustomServerInput(currentServer); setServerTestStatus(null); setShowServerModal(true); }}
+              style={{ background: 'none', border: 'none', color: 'var(--color-primary)', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.75rem', fontWeight: 600, padding: 0 }}
+            >
+              Config
+            </button>
+          </div>
+        )}
 
-        {showServerModal && (
+        {isNativeApp && showServerModal && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '16px' }}>
             <div style={{ background: 'var(--color-bg-surface, #fff)', color: 'var(--color-text-primary, #1e293b)', borderRadius: '12px', padding: '24px', maxWidth: '420px', width: '100%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '8px' }}>Server Network Configuration</h3>
@@ -324,3 +334,4 @@ export const LoginPage = () => {
     </div>
   );
 };
+export default LoginPage;

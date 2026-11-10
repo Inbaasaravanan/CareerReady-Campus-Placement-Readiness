@@ -19,7 +19,7 @@ export const LandingPage = () => {
       {/* ============================================================
           1. HERO SECTION
           ============================================================ */}
-      <section className="hero-section" aria-label="Hero Section">
+      <section className="hero-section" id="hero" aria-label="Hero Section">
         <div className="container">
           <div className="hero-content">
             <div className="hero-tag">
@@ -49,7 +49,56 @@ export const LandingPage = () => {
       </section>
 
       {/* ============================================================
-          2. CORE FEATURES SECTION (4-Column Grid)
+          2. HOW IT WORKS (4-Step Horizontal)
+          ============================================================ */}
+      <section className="section-how" id="how-it-works" aria-label="How It Works">
+        <div className="container">
+          <div className="section-header">
+            <span className="section-eyebrow">System Workflow</span>
+            <h2 className="section-title">How It Works</h2>
+            <p className="section-subtitle">
+              A systematic 4-step pipeline that transforms raw performance metrics into guided placement readiness.
+            </p>
+          </div>
+
+          <div className="how-steps-grid">
+            <div className="how-step-card">
+              <span className="step-badge">Step 01</span>
+              <h3 className="step-title">Enter Performance Data</h3>
+              <p className="step-desc">
+                Academic, aptitude, programming and technical information submitted via structured diagnostic assessment.
+              </p>
+            </div>
+
+            <div className="how-step-card">
+              <span className="step-badge">Step 02</span>
+              <h3 className="step-title">AI Analysis</h3>
+              <p className="step-desc">
+                The system analyzes placement-related performance through trained multi-feature evaluation models.
+              </p>
+            </div>
+
+            <div className="how-step-card">
+              <span className="step-badge">Step 03</span>
+              <h3 className="step-title">Get Readiness Insights</h3>
+              <p className="step-desc">
+                Receive readiness score, company matches, eligibility cutoffs, and pinpointed skill gaps.
+              </p>
+            </div>
+
+            <div className="how-step-card">
+              <span className="step-badge">Step 04</span>
+              <h3 className="step-title">Improve & Prepare</h3>
+              <p className="step-desc">
+                Use the targeted analytical insights and department guidance to improve placement readiness before drives.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================================
+          3. CORE FEATURES SECTION (4-Column Grid)
           ============================================================ */}
       <section className="section-features" id="features" aria-label="Core Features">
         <div className="container">
@@ -106,51 +155,6 @@ export const LandingPage = () => {
       </section>
 
       {/* ============================================================
-          3. WHY CAREERREADY AI (2-Column)
-          ============================================================ */}
-      <section className="section-why" id="about" aria-label="Why CareerReady AI">
-        <div className="container">
-          <div className="why-grid">
-            <div className="why-image-wrap">
-              <img
-                src="/assets/images/why_lab.jpg"
-                alt="University Computer Science Lab and Technical Workspace"
-                loading="lazy"
-              />
-            </div>
-
-            <div className="why-content">
-              <span className="section-eyebrow">PLACEMENT INTELLIGENCE</span>
-              <h2 className="section-title">Turn Student Performance Into Actionable Placement Insights</h2>
-              <p className="section-subtitle" style={{ textAlign: 'left', margin: 0 }}>
-                CareerReady AI converts academic and skill-related performance data into meaningful placement
-                insights that help students and placement teams make informed preparation decisions.
-              </p>
-
-              <ul className="benefits-list">
-                <li className="benefit-item">
-                  <CheckIcon className="check-icon" />
-                  <span>Data-driven readiness assessment</span>
-                </li>
-                <li className="benefit-item">
-                  <CheckIcon className="check-icon" />
-                  <span>Company-wise compatibility</span>
-                </li>
-                <li className="benefit-item">
-                  <CheckIcon className="check-icon" />
-                  <span>Personalized skill gap identification</span>
-                </li>
-                <li className="benefit-item">
-                  <CheckIcon className="check-icon" />
-                  <span>Early identification of at-risk students</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ============================================================
           4. READINESS ANALYTICS SECTION (Structured 2-Column Grid)
           ============================================================ */}
       <section className="section-readiness-demo" id="analytics" aria-label="Readiness Analytics">
@@ -200,49 +204,45 @@ export const LandingPage = () => {
       </section>
 
       {/* ============================================================
-          5. HOW IT WORKS (4-Step Horizontal)
+          5. WHY CAREERREADY AI / ABOUT (2-Column)
           ============================================================ */}
-      <section className="section-how" id="how-it-works" aria-label="How It Works">
+      <section className="section-why" id="about" aria-label="Why CareerReady AI">
         <div className="container">
-          <div className="section-header">
-            <span className="section-eyebrow">System Workflow</span>
-            <h2 className="section-title">How It Works</h2>
-            <p className="section-subtitle">
-              A systematic 4-step pipeline that transforms raw performance metrics into guided placement readiness.
-            </p>
-          </div>
-
-          <div className="how-steps-grid">
-            <div className="how-step-card">
-              <span className="step-badge">Step 01</span>
-              <h3 className="step-title">Enter Performance Data</h3>
-              <p className="step-desc">
-                Academic, aptitude, programming and technical information submitted via structured diagnostic assessment.
-              </p>
+          <div className="why-grid">
+            <div className="why-image-wrap">
+              <img
+                src="/assets/images/why_lab.jpg"
+                alt="University Computer Science Lab and Technical Workspace"
+                loading="lazy"
+              />
             </div>
 
-            <div className="how-step-card">
-              <span className="step-badge">Step 02</span>
-              <h3 className="step-title">AI Analysis</h3>
-              <p className="step-desc">
-                The system analyzes placement-related performance through trained multi-feature evaluation models.
+            <div className="why-content">
+              <span className="section-eyebrow">PLACEMENT INTELLIGENCE</span>
+              <h2 className="section-title">Turn Student Performance Into Actionable Placement Insights</h2>
+              <p className="section-subtitle" style={{ textAlign: 'left', margin: 0 }}>
+                CareerReady AI converts academic and skill-related performance data into meaningful placement
+                insights that help students and placement teams make informed preparation decisions.
               </p>
-            </div>
 
-            <div className="how-step-card">
-              <span className="step-badge">Step 03</span>
-              <h3 className="step-title">Get Readiness Insights</h3>
-              <p className="step-desc">
-                Receive readiness score, company matches, eligibility cutoffs, and pinpointed skill gaps.
-              </p>
-            </div>
-
-            <div className="how-step-card">
-              <span className="step-badge">Step 04</span>
-              <h3 className="step-title">Improve & Prepare</h3>
-              <p className="step-desc">
-                Use the targeted analytical insights and department guidance to improve placement readiness before drives.
-              </p>
+              <ul className="benefits-list">
+                <li className="benefit-item">
+                  <CheckIcon className="check-icon" />
+                  <span>Data-driven readiness assessment</span>
+                </li>
+                <li className="benefit-item">
+                  <CheckIcon className="check-icon" />
+                  <span>Company-wise compatibility</span>
+                </li>
+                <li className="benefit-item">
+                  <CheckIcon className="check-icon" />
+                  <span>Personalized skill gap identification</span>
+                </li>
+                <li className="benefit-item">
+                  <CheckIcon className="check-icon" />
+                  <span>Early identification of at-risk students</span>
+                </li>
+              </ul>
             </div>
           </div>
         </div>
@@ -251,7 +251,7 @@ export const LandingPage = () => {
       {/* ============================================================
           6. AI ANALYSIS MODULES SECTION
           ============================================================ */}
-      <section className="section-algorithms" aria-label="Analytics & AI Modules">
+      <section className="section-algorithms" id="algorithms" aria-label="Analytics & AI Modules">
         <div className="container">
           <div className="section-header">
             <span className="section-eyebrow">Engine Architecture</span>
@@ -300,7 +300,7 @@ export const LandingPage = () => {
       {/* ============================================================
           7. FINAL CTA SECTION
           ============================================================ */}
-      <section className="section-cta" aria-label="Call to Action">
+      <section className="section-cta" id="cta" aria-label="Call to Action">
         <div className="container">
           <div className="cta-box">
             <h2 className="cta-title">{cms('landing.cta.title', 'Start Understanding Your Placement Readiness')}</h2>

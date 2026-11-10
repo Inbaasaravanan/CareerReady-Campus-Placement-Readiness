@@ -6,7 +6,7 @@ import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
 import { Modal } from '../../components/common/Modal';
 import { LoadingState, ErrorState, EmptyState } from '../../components/common/StateViews';
-import { SearchIcon, AlertTriangleIcon, CheckIcon, LayersIcon, BriefcaseIcon, UserIcon } from '../../components/common/Icons';
+import { SearchIcon, AlertTriangleIcon, CheckIcon, LayersIcon, BriefcaseIcon, UserIcon, ChevronDownIcon } from '../../components/common/Icons';
 
 export const StaffSkillGaps = () => {
   const [skillGaps, setSkillGaps] = useState([]);
@@ -15,6 +15,10 @@ export const StaffSkillGaps = () => {
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // View presentation mode: 'grouped' (expandable student cards - default) or 'table' (compact continuous table)
+  const [viewMode, setViewMode] = useState('grouped');
+  const [expandedStudents, setExpandedStudents] = useState(() => new Set());
 
   // Filters
   const [search, setSearch] = useState('');
@@ -110,6 +114,43 @@ export const StaffSkillGaps = () => {
   const highPriorityCount = useMemo(() => skillGaps.filter(g => g.gapPriority === 'HIGH').length, [skillGaps]);
   const uniqueStudentsCount = useMemo(() => new Set(skillGaps.map(g => g.studentId)).size, [skillGaps]);
   const uniqueCompaniesCount = useMemo(() => new Set(skillGaps.map(g => g.companyName || g.company)).size, [skillGaps]);
+
+  // Group gaps by unique student identifier (studentId or registerNumber)
+  const studentGroups = useMemo(() => {
+    const map = new Map();
+    skillGaps.forEach((item) => {
+      const key = item.studentId ? `std-${item.studentId}` : `reg-${item.registerNumber || item.studentName}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          studentId: item.studentId,
+          studentName: item.studentName || 'Student',
+          registerNumber: item.registerNumber || '-',
+          department: item.department || item.departmentName || 'Not Provided',
+          gaps: []
+        });
+      }
+      map.get(key).gaps.push(item);
+    });
+    return Array.from(map.values());
+  }, [skillGaps]);
+
+  const toggleStudent = (key) => {
+    setExpandedStudents((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const expandAll = () => {
+    setExpandedStudents(new Set(studentGroups.map((g) => g.key)));
+  };
+
+  const collapseAll = () => {
+    setExpandedStudents(new Set());
+  };
 
   if (loading && skillGaps.length === 0) {
     return <LoadingState message="Loading student skill gap analysis from MySQL database..." />;
@@ -266,14 +307,81 @@ export const StaffSkillGaps = () => {
 
       {/* Main Student Skill Gap Table */}
       <div className="card">
-        <div className="section-title-bar">
+        <div className="section-title-bar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
           <div>
             <h3 className="section-heading-sm">Student-Level Skill Gap Registry</h3>
-            <p className="form-hint">Detailed breakdown of candidate competencies compared against corporate hiring benchmarks</p>
+            <p className="form-hint">
+              {viewMode === 'grouped'
+                ? `Organized by student • ${studentGroups.length} candidates with ${skillGaps.length} total requirements`
+                : `Continuous registry of all ${skillGaps.length} candidate skill gaps`}
+            </p>
           </div>
-          <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-primary)' }}>
-            Showing {skillGaps.length} gaps
-          </span>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {/* View Mode Switcher */}
+            <div style={{ display: 'inline-flex', backgroundColor: 'var(--color-bg-subtle)', padding: '2px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
+              <button
+                type="button"
+                onClick={() => setViewMode('grouped')}
+                style={{
+                  padding: '4px 10px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  borderRadius: 'var(--radius-sm)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  backgroundColor: viewMode === 'grouped' ? '#FFFFFF' : 'transparent',
+                  color: viewMode === 'grouped' ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                  boxShadow: viewMode === 'grouped' ? 'var(--shadow-xs)' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                Grouped by Student ({studentGroups.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                style={{
+                  padding: '4px 10px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  borderRadius: 'var(--radius-sm)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  backgroundColor: viewMode === 'table' ? '#FFFFFF' : 'transparent',
+                  color: viewMode === 'table' ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                  boxShadow: viewMode === 'table' ? 'var(--shadow-xs)' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                Continuous Table ({skillGaps.length})
+              </button>
+            </div>
+
+            {/* Expand / Collapse All (Grouped mode only) */}
+            {viewMode === 'grouped' && (
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  style={{ fontSize: '0.75rem', padding: '3px 8px', height: '28px' }}
+                  onClick={expandAll}
+                >
+                  Expand All
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  style={{ fontSize: '0.75rem', padding: '3px 8px', height: '28px' }}
+                  onClick={collapseAll}
+                >
+                  Collapse All
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
 
         {skillGaps.length === 0 ? (
@@ -283,96 +391,340 @@ export const StaffSkillGaps = () => {
             actionLabel="Clear Filters"
             onAction={resetFilters}
           />
+        ) : viewMode === 'grouped' ? (
+          /* Expandable Grouped Student View */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {studentGroups.map((group) => {
+              const isExpanded = expandedStudents.has(group.key);
+              const highCount = group.gaps.filter(g => (g.gapPriority || '').toUpperCase() === 'HIGH').length;
+              const companiesCount = new Set(group.gaps.map(g => g.companyName || g.company)).size;
+
+              return (
+                <div
+                  key={group.key}
+                  style={{
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 'var(--radius-md)',
+                    backgroundColor: 'var(--color-bg-surface)',
+                    overflow: 'hidden',
+                    boxShadow: 'var(--shadow-xs)'
+                  }}
+                >
+                  {/* Student Header Bar */}
+                  <div
+                    onClick={() => toggleStudent(group.key)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '10px 14px',
+                      backgroundColor: isExpanded ? 'var(--color-bg-subtle)' : 'var(--color-bg-surface)',
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                      borderBottom: isExpanded ? '1px solid var(--color-border)' : 'none',
+                      transition: 'background-color 0.15s ease',
+                      flexWrap: 'wrap',
+                      gap: '8px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: '220px', flex: '1 1 auto' }}>
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '50%',
+                          backgroundColor: isExpanded ? '#EFF6FF' : 'var(--color-bg-subtle)',
+                          color: isExpanded ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                          transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+                          transition: 'transform 0.2s ease',
+                          flexShrink: 0
+                        }}
+                      >
+                        <ChevronDownIcon width={14} height={14} />
+                      </span>
+
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <strong style={{ fontSize: '0.875rem', color: 'var(--color-navy-950)' }}>
+                            {group.studentName}
+                          </strong>
+                          <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: 'var(--color-text-muted)', backgroundColor: 'var(--color-bg-subtle)', padding: '1px 6px', borderRadius: '4px' }}>
+                            {group.registerNumber}
+                          </span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                            • {group.department}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Summary Badges and Dossier Button */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', flex: '0 0 auto', marginLeft: 'auto' }} onClick={(e) => e.stopPropagation()}>
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '2px 8px',
+                        borderRadius: '12px',
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        backgroundColor: '#FEF3C7',
+                        color: '#92400E'
+                      }}>
+                        {group.gaps.length} Gaps ({highCount} High)
+                      </span>
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '2px 8px',
+                        borderRadius: '12px',
+                        fontSize: '0.72rem',
+                        fontWeight: 500,
+                        backgroundColor: 'var(--color-bg-subtle)',
+                        color: 'var(--color-text-secondary)'
+                      }}>
+                        {companiesCount} {companiesCount === 1 ? 'Company' : 'Companies'}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        style={{ fontSize: '0.75rem', padding: '3px 8px', height: '26px', whiteSpace: 'nowrap' }}
+                        onClick={() => handleOpenStudentDetail(group.studentId)}
+                      >
+                        View Dossier
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Expanded Individual Gaps Table */}
+                  {isExpanded && (
+                    <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', backgroundColor: '#FAFAFA' }}>
+                      <table className="data-table" style={{ tableLayout: 'fixed', width: '100%', minWidth: '920px', borderCollapse: 'collapse', fontSize: '0.8125rem' }}>
+                        <colgroup>
+                          <col style={{ width: '18%' }} />
+                          <col style={{ width: '22%' }} />
+                          <col style={{ width: '12%' }} />
+                          <col style={{ width: '12%' }} />
+                          <col style={{ width: '14%' }} />
+                          <col style={{ width: '10%' }} />
+                          <col style={{ width: '12%' }} />
+                        </colgroup>
+                        <thead>
+                          <tr style={{ backgroundColor: 'var(--color-bg-subtle)' }}>
+                            <th style={{ padding: '6px 10px', textAlign: 'left', fontSize: '0.72rem', letterSpacing: '0.04em' }}>Target Company</th>
+                            <th style={{ padding: '6px 10px', textAlign: 'left', fontSize: '0.72rem', letterSpacing: '0.04em' }}>Assessed Skill</th>
+                            <th style={{ padding: '6px 10px', textAlign: 'center', fontSize: '0.72rem', letterSpacing: '0.04em' }}>Current Level</th>
+                            <th style={{ padding: '6px 10px', textAlign: 'center', fontSize: '0.72rem', letterSpacing: '0.04em' }}>Required Level</th>
+                            <th style={{ padding: '6px 10px', textAlign: 'center', fontSize: '0.72rem', letterSpacing: '0.04em' }}>Gap Status</th>
+                            <th style={{ padding: '6px 10px', textAlign: 'center', fontSize: '0.72rem', letterSpacing: '0.04em' }}>Priority</th>
+                            <th style={{ padding: '6px 10px', textAlign: 'center', fontSize: '0.72rem', letterSpacing: '0.04em' }}>Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {group.gaps.map((item, gIdx) => {
+                            const p = (item.gapPriority || 'MEDIUM').toUpperCase();
+                            const priorityVariant = p === 'HIGH' ? 'at-risk' : p === 'MEDIUM' ? 'needs-improvement' : 'ready';
+
+                            return (
+                              <tr key={gIdx} style={{ height: '34px', backgroundColor: '#FFFFFF', borderBottom: '1px solid var(--color-border)' }}>
+                                <td style={{ padding: '5px 10px', textAlign: 'left', fontWeight: 600, color: 'var(--color-primary)', wordBreak: 'break-word' }}>
+                                  {item.companyName || item.company || 'Enterprise'}
+                                </td>
+                                <td style={{ padding: '5px 10px', textAlign: 'left', wordBreak: 'break-word' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{item.skillName || item.skill}</span>
+                                    {item.mandatory && (
+                                      <span style={{ fontSize: '0.65rem', backgroundColor: '#FEE2E2', color: '#991B1B', padding: '1px 4px', borderRadius: '3px', fontWeight: 600 }}>
+                                        Mandatory
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)' }}>{item.category || 'Technical'}</span>
+                                </td>
+                                <td style={{ padding: '5px 10px', textAlign: 'center' }}>
+                                  <span style={{
+                                    display: 'inline-block',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 600,
+                                    backgroundColor: item.currentLevel === 'NONE' ? '#FEE2E2' : '#F1F5F9',
+                                    color: item.currentLevel === 'NONE' ? '#991B1B' : '#334155',
+                                    whiteSpace: 'nowrap'
+                                  }}>
+                                    {item.currentLevel || 'NONE'}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '5px 10px', textAlign: 'center' }}>
+                                  <span style={{
+                                    display: 'inline-block',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 600,
+                                    backgroundColor: '#EFF6FF',
+                                    color: '#1E40AF',
+                                    whiteSpace: 'nowrap'
+                                  }}>
+                                    {item.requiredLevel || 'INTERMEDIATE'}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '5px 10px', textAlign: 'center', fontSize: '0.72rem', color: 'var(--color-text-secondary)', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                                  {item.gapStatus || 'Skill Gap'}
+                                </td>
+                                <td style={{ padding: '5px 10px', textAlign: 'center' }}>
+                                  <Badge status={p} variant={priorityVariant} style={{ fontSize: '0.7rem', padding: '2px 6px' }}>
+                                    {p}
+                                  </Badge>
+                                </td>
+                                <td style={{ padding: '5px 10px', textAlign: 'center' }}>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    style={{ fontSize: '0.72rem', padding: '2px 8px', height: '24px', whiteSpace: 'nowrap' }}
+                                    onClick={() => handleOpenStudentDetail(item.studentId)}
+                                  >
+                                    View Details
+                                  </Button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         ) : (
-          <div className="table-responsive">
-            <table className="data-table">
+          /* Continuous Compact Table with Visual Grouping */
+          <div className="table-container" style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table className="data-table" style={{ tableLayout: 'fixed', width: '100%', minWidth: '1240px', borderCollapse: 'collapse', fontSize: '0.8125rem' }}>
+              <colgroup>
+                <col style={{ width: '13%' }} />
+                <col style={{ width: '8%' }} />
+                <col style={{ width: '13%' }} />
+                <col style={{ width: '12%' }} />
+                <col style={{ width: '13%' }} />
+                <col style={{ width: '9%' }} />
+                <col style={{ width: '9%' }} />
+                <col style={{ width: '9%' }} />
+                <col style={{ width: '6%' }} />
+                <col style={{ width: '8%' }} />
+              </colgroup>
               <thead>
                 <tr>
-                  <th>Student Name</th>
-                  <th>Reg No</th>
-                  <th>Department</th>
-                  <th>Target Company</th>
-                  <th>Assessed Skill</th>
-                  <th>Current Level</th>
-                  <th>Required Level</th>
-                  <th>Gap Status</th>
-                  <th>Priority</th>
-                  <th style={{ textAlign: 'right' }}>Action</th>
+                  <th style={{ width: '13%', textAlign: 'left', verticalAlign: 'middle', padding: '6px 10px', whiteSpace: 'nowrap' }}>Student Name</th>
+                  <th style={{ width: '8%', textAlign: 'left', verticalAlign: 'middle', padding: '6px 10px', whiteSpace: 'nowrap' }}>Reg No</th>
+                  <th style={{ width: '13%', textAlign: 'left', verticalAlign: 'middle', padding: '6px 10px', whiteSpace: 'nowrap' }}>Department</th>
+                  <th style={{ width: '12%', textAlign: 'left', verticalAlign: 'middle', padding: '6px 10px', whiteSpace: 'nowrap' }}>Target Company</th>
+                  <th style={{ width: '13%', textAlign: 'left', verticalAlign: 'middle', padding: '6px 10px', whiteSpace: 'nowrap' }}>Assessed Skill</th>
+                  <th style={{ width: '9%', textAlign: 'center', verticalAlign: 'middle', padding: '6px 10px', whiteSpace: 'nowrap' }}>Current Level</th>
+                  <th style={{ width: '9%', textAlign: 'center', verticalAlign: 'middle', padding: '6px 10px', whiteSpace: 'nowrap' }}>Required Level</th>
+                  <th style={{ width: '9%', textAlign: 'center', verticalAlign: 'middle', padding: '6px 10px', whiteSpace: 'nowrap' }}>Gap Status</th>
+                  <th style={{ width: '6%', textAlign: 'center', verticalAlign: 'middle', padding: '6px 10px', whiteSpace: 'nowrap' }}>Priority</th>
+                  <th style={{ width: '8%', textAlign: 'center', verticalAlign: 'middle', padding: '6px 10px', whiteSpace: 'nowrap' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {skillGaps.map((item, idx) => {
                   const p = (item.gapPriority || 'MEDIUM').toUpperCase();
                   const priorityVariant = p === 'HIGH' ? 'at-risk' : p === 'MEDIUM' ? 'needs-improvement' : 'ready';
+                  const isFirstOfStudent = idx === 0 || item.studentId !== skillGaps[idx - 1].studentId;
 
                   return (
-                    <tr key={idx} style={{ cursor: 'pointer' }} onClick={() => handleOpenStudentDetail(item.studentId)}>
-                      <td>
-                        <strong style={{ color: 'var(--color-navy-950)' }}>
-                          {item.studentName || 'Student'}
-                        </strong>
+                    <tr
+                      key={idx}
+                      style={{
+                        height: '34px',
+                        borderBottom: '1px solid var(--color-border)',
+                        backgroundColor: isFirstOfStudent ? '#FFFFFF' : '#FAFAFA'
+                      }}
+                    >
+                      <td style={{ textAlign: 'left', verticalAlign: 'middle', wordBreak: 'break-word', padding: '5px 10px' }}>
+                        {isFirstOfStudent ? (
+                          <strong style={{ color: 'var(--color-navy-950)', display: 'block', fontSize: '0.8125rem' }}>
+                            {item.studentName || 'Student'}
+                          </strong>
+                        ) : (
+                          <span style={{ color: 'var(--color-text-muted)', fontSize: '0.72rem', paddingLeft: '8px' }}>
+                            ↳ (same)
+                          </span>
+                        )}
                       </td>
-                      <td style={{ fontFamily: 'monospace', fontSize: '0.8125rem' }}>
-                        {item.registerNumber || '-'}
+                      <td style={{ textAlign: 'left', verticalAlign: 'middle', fontFamily: 'monospace', fontSize: '0.75rem', whiteSpace: 'nowrap', padding: '5px 10px' }}>
+                        {isFirstOfStudent ? (item.registerNumber || '-') : <span style={{ color: 'var(--color-text-muted)' }}>″</span>}
                       </td>
-                      <td>
-                        <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
-                          {item.department || item.departmentName || 'Not Provided'}
-                        </span>
+                      <td style={{ textAlign: 'left', verticalAlign: 'middle', wordBreak: 'break-word', lineHeight: 1.25, padding: '5px 10px' }}>
+                        {isFirstOfStudent ? (
+                          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', display: 'block' }}>
+                            {item.department || item.departmentName || 'Not Provided'}
+                          </span>
+                        ) : (
+                          <span style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem' }}>″</span>
+                        )}
                       </td>
-                      <td>
-                        <span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>
+                      <td style={{ textAlign: 'left', verticalAlign: 'middle', wordBreak: 'break-word', padding: '5px 10px' }}>
+                        <span style={{ fontWeight: 600, color: 'var(--color-primary)', fontSize: '0.8125rem' }}>
                           {item.companyName || item.company || 'Enterprise'}
                         </span>
                       </td>
-                      <td>
-                        <div>
+                      <td style={{ textAlign: 'left', verticalAlign: 'middle', wordBreak: 'break-word', lineHeight: 1.25, padding: '5px 10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{item.skillName || item.skill}</span>
-                          <span style={{ display: 'block', fontSize: '0.6875rem', color: 'var(--color-text-muted)' }}>
-                            {item.category || 'Technical'} {item.mandatory ? '• Mandatory' : ''}
-                          </span>
+                          {item.mandatory && (
+                            <span style={{ fontSize: '0.62rem', backgroundColor: '#FEE2E2', color: '#991B1B', padding: '1px 4px', borderRadius: '3px', fontWeight: 600 }}>
+                              Mandatory
+                            </span>
+                          )}
                         </div>
+                        <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)' }}>{item.category || 'Technical'}</span>
                       </td>
-                      <td>
+                      <td style={{ textAlign: 'center', verticalAlign: 'middle', padding: '5px 10px' }}>
                         <span style={{
                           display: 'inline-block',
-                          padding: '2px 8px',
+                          padding: '2px 6px',
                           borderRadius: '4px',
-                          fontSize: '0.75rem',
+                          fontSize: '0.72rem',
                           fontWeight: 600,
                           backgroundColor: item.currentLevel === 'NONE' ? '#FEE2E2' : '#F1F5F9',
-                          color: item.currentLevel === 'NONE' ? '#991B1B' : '#334155'
+                          color: item.currentLevel === 'NONE' ? '#991B1B' : '#334155',
+                          whiteSpace: 'nowrap'
                         }}>
                           {item.currentLevel || 'NONE'}
                         </span>
                       </td>
-                      <td>
+                      <td style={{ textAlign: 'center', verticalAlign: 'middle', padding: '5px 10px' }}>
                         <span style={{
                           display: 'inline-block',
-                          padding: '2px 8px',
+                          padding: '2px 6px',
                           borderRadius: '4px',
-                          fontSize: '0.75rem',
+                          fontSize: '0.72rem',
                           fontWeight: 600,
                           backgroundColor: '#EFF6FF',
-                          color: '#1E40AF'
+                          color: '#1E40AF',
+                          whiteSpace: 'nowrap'
                         }}>
                           {item.requiredLevel || 'INTERMEDIATE'}
                         </span>
                       </td>
-                      <td>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', fontWeight: 500 }}>
+                      <td style={{ textAlign: 'center', verticalAlign: 'middle', padding: '5px 10px' }}>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', fontWeight: 500, whiteSpace: 'nowrap' }}>
                           {item.gapStatus || 'Skill Gap'}
                         </span>
                       </td>
-                      <td>
-                        <Badge status={p} variant={priorityVariant}>
+                      <td style={{ textAlign: 'center', verticalAlign: 'middle', padding: '5px 10px' }}>
+                        <Badge status={p} variant={priorityVariant} style={{ fontSize: '0.7rem', padding: '2px 6px', whiteSpace: 'nowrap' }}>
                           {p}
                         </Badge>
                       </td>
-                      <td style={{ textAlign: 'right' }}>
+                      <td style={{ textAlign: 'center', verticalAlign: 'middle', padding: '5px 10px' }}>
                         <Button
                           variant="outline"
                           size="sm"
+                          style={{ fontSize: '0.72rem', padding: '2px 8px', height: '24px', whiteSpace: 'nowrap' }}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleOpenStudentDetail(item.studentId);

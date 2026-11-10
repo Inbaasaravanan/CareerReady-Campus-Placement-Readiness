@@ -139,8 +139,57 @@ html, body {
     --topbar-height: 58px;
   }
 
-  .site-nav {
+  .site-nav,
+  .site-header .header-actions {
     display: none;
+  }
+
+  .navbar-mobile-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .navbar-mobile-menu {
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-4) var(--space-6) var(--space-6);
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--color-border);
+    box-shadow: 0 12px 28px -6px rgba(15, 23, 42, 0.08);
+  }
+
+  .mobile-nav-links {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+  }
+
+  .mobile-nav-link {
+    font-size: var(--text-base);
+    font-weight: var(--weight-medium);
+    color: var(--color-text-primary);
+    padding: 10px 14px;
+    border-radius: var(--radius-md);
+    transition: background-color 0.15s ease, color 0.15s ease;
+    text-decoration: none;
+  }
+
+  .mobile-nav-link:hover,
+  .mobile-nav-link.active {
+    background-color: var(--color-primary-light);
+    color: var(--color-primary);
+    font-weight: var(--weight-semibold);
+  }
+
+  .mobile-nav-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-border);
   }
 
   .features-grid,
@@ -438,6 +487,15 @@ html, body {
     width: calc(100vw - 24px);
     max-width: 310px;
     right: -8px;
+  }
+
+  .assigned-students-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .assigned-student-card {
+    padding: 14px !important;
   }
 
   /* Touch Targets: minimum 40px for comfortable mobile taps */

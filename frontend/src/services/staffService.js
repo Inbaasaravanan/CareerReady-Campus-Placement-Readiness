@@ -247,5 +247,32 @@ export const staffService = {
     } catch (err) {
       throw new Error(getErrorMessage(err));
     }
+  },
+
+  /**
+   * Get departmental placement readiness performance metrics from MySQL
+   */
+  async getDepartmentAnalytics() {
+    try {
+      const res = await api.get('/staff/analytics/departments');
+      if (res.data && res.data.success && Array.isArray(res.data.data)) {
+        return res.data.data.map((dept) => ({
+          departmentId: dept.departmentId,
+          department: dept.department || dept.departmentName || dept.name || 'Not Provided',
+          departmentName: dept.departmentName || dept.department || dept.name || 'Not Provided',
+          name: dept.name || dept.departmentName || dept.department || 'Not Provided',
+          code: dept.code || '—',
+          studentCount: dept.studentCount != null ? dept.studentCount : (dept.studentsCount || 0),
+          studentsCount: dept.studentsCount != null ? dept.studentsCount : (dept.studentCount || 0),
+          averageCgpa: dept.averageCgpa != null ? dept.averageCgpa : dept.averageCGPA,
+          averageCGPA: dept.averageCGPA != null ? dept.averageCGPA : dept.averageCgpa,
+          averageReadiness: dept.averageReadiness != null ? dept.averageReadiness : null,
+          atRiskCount: dept.atRiskCount != null ? dept.atRiskCount : 0
+        }));
+      }
+      return [];
+    } catch (err) {
+      throw new Error(getErrorMessage(err));
+    }
   }
 };

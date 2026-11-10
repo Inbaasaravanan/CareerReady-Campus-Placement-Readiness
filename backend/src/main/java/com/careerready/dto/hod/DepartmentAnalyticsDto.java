@@ -18,4 +18,16 @@ public class DepartmentAnalyticsDto {
     private Double averageCgpa;
     private Double averageReadiness;
     private Long atRiskCount;
+
+    public String getName() {
+        return departmentName != null ? departmentName : department;
+    }
+
+    public Long getStudentsCount() {
+        return studentCount;
+    }
+
+    public Double getAverageCGPA() {
+        return averageCgpa;
+    }
 }

@@ -122,20 +122,20 @@ export const getErrorMessage = (error) => {
     }
   }
   if (error?.message === 'Network Error' || error?.code === 'ERR_NETWORK') {
-    return 'Unable to connect to server. Please make sure the backend is running.';
+    return 'Backend server is disconnected. Please start the Spring Boot backend using "mvn spring-boot:run" in the backend directory.';
   }
   return error?.message || 'A server communication error occurred.';
 };
 
 /**
- * Check whether the Spring Boot backend /api/health endpoint is online
+ * Check whether the configured Spring Boot backend /api/health endpoint is online
  */
 export const checkBackendHealth = async (customBaseUrl) => {
   try {
     const url = customBaseUrl ? `${customBaseUrl.replace(/\/+$/, '')}/health` : '/health';
-    const client = customBaseUrl ? axios.create({ timeout: 4000 }) : api;
-    const res = await client.get(url);
-    return res.data && res.data.success;
+    const client = customBaseUrl ? axios.create({ timeout: 2500 }) : api;
+    const res = await client.get(url, { timeout: 2500 });
+    return Boolean(res.data && res.data.success && res.data.data?.status === 'UP');
   } catch {
     return false;
   }

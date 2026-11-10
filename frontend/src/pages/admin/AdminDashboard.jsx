@@ -34,13 +34,18 @@ const formatLastLogin = (dateVal) => {
 
 export const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
+  const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const u = await adminService.getUsers();
-        setUsers(u);
+        const [u, pending] = await Promise.allSettled([
+          adminService.getUsers(),
+          adminService.getPendingApprovals()
+        ]);
+        if (u.status === 'fulfilled') setUsers(u.value || []);
+        if (pending.status === 'fulfilled') setPendingCount((pending.value || []).length);
       } finally {
         setLoading(false);
       }
@@ -56,13 +61,49 @@ export const AdminDashboard = () => {
         title="System Administration Console"
         subtitle="Manage user authorizations, academic department taxonomy, corporate registries, and analytical cutoffs."
         actions={
-          <Link to="/admin/settings">
-            <Button variant="outline" icon={SettingsIcon}>
-              System Configuration
-            </Button>
-          </Link>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <Link to="/admin/approvals">
+              <Button variant={pendingCount > 0 ? "primary" : "outline"}>
+                Approvals {pendingCount > 0 ? `(${pendingCount})` : ''}
+              </Button>
+            </Link>
+            <Link to="/admin/settings">
+              <Button variant="outline" icon={SettingsIcon}>
+                System Configuration
+              </Button>
+            </Link>
+          </div>
         }
       />
+
+      {pendingCount > 0 && (
+        <div style={{
+          backgroundColor: '#FFFBEB',
+          border: '1px solid #FDE68A',
+          borderRadius: 'var(--radius-md)',
+          padding: '14px 20px',
+          marginBottom: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px'
+        }}>
+          <div>
+            <strong style={{ color: '#92400E', fontSize: '0.9375rem' }}>
+              Action Required: {pendingCount} Pending Account Registration{pendingCount > 1 ? 's' : ''}
+            </strong>
+            <p style={{ margin: '4px 0 0', fontSize: '0.8125rem', color: '#B45309' }}>
+              New Staff or Administrator registration requests are awaiting designated administrator review and approval.
+            </p>
+          </div>
+          <Link to="/admin/approvals">
+            <Button variant="primary" size="sm">
+              Review Approvals ({pendingCount})
+            </Button>
+          </Link>
+        </div>
+      )}
 
       <div className="dashboard-grid-4">
         <StatCard label="Registered Users" value={users.length} subtext="Across 4 System Roles" icon={UsersIcon} />

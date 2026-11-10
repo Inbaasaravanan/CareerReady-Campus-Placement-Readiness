@@ -24,6 +24,12 @@ public class EmailServiceImpl implements EmailService {
     @Value("${app.mail.from:placement@careerready.ai}")
     private String fromEmail;
 
+    @Value("${app.mail.admin-notification-email:inbaasara@gmail.com}")
+    private String adminNotificationEmail;
+
+    @Value("${app.frontend.url:http://localhost:5173}")
+    private String frontendUrl;
+
     public EmailServiceImpl() {
         this.mailSender = null;
     }
@@ -35,55 +41,63 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     public boolean sendApprovalEmail(String recipientEmail, String recipientName, String roleName) {
-        String subject = "Placement Readiness System - Account Approved";
-        String displayName = (recipientName != null && !recipientName.isBlank()) ? recipientName.trim() : "Member";
-        String displayRole = (roleName != null && !roleName.isBlank()) ? roleName.trim() : "Placement Officer";
+        String subject = "Your CareerReady AI Account Has Been Approved";
+        String displayName = (recipientName != null && !recipientName.isBlank()) ? recipientName.trim() : "User";
+
+        String displayRole = "Staff/HOD";
+        if (roleName != null && !roleName.isBlank()) {
+            String upper = roleName.toUpperCase().trim();
+            if (upper.contains("HOD")) {
+                displayRole = "HOD";
+            } else if (upper.contains("STAFF")) {
+                displayRole = "Staff";
+            } else if (upper.contains("ADMIN")) {
+                displayRole = "Administrator";
+            } else {
+                displayRole = roleName.trim();
+            }
+        }
 
         String textBody = String.format(
-                "Dear %s,\n\n" +
-                "Congratulations! Your account registration for the Placement Readiness Analytics System has been approved by the Administrator.\n\n" +
-                "Account Details:\n" +
-                "- Name: %s\n" +
-                "- Role: %s\n" +
-                "- Email: %s\n" +
-                "- Status: ACTIVE\n\n" +
-                "You can now log in using your registered credentials at:\n" +
-                "http://localhost:5173/login\n\n" +
+                "Hello %s,\n\n" +
+                "Your %s registration request for CareerReady AI has been approved by the Admin. Your account is now approved. You can sign in using your registered email and existing login method.\n\n" +
                 "Regards,\n" +
-                "Placement Administration Team\n" +
-                "CareerReady Analytics",
-                displayName, displayName, displayRole, recipientEmail
+                "CareerReady AI Administration",
+                displayName, displayRole
         );
+
+        String loginUrl = (frontendUrl != null && !frontendUrl.isBlank()) ? frontendUrl.replaceAll("/+$", "") + "/login" : "http://localhost:5173/login";
 
         String htmlBody = String.format(
                 "<!DOCTYPE html>" +
-                "<html><head><meta charset='UTF-8'></head>" +
+                "<html><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'>" +
+                "<title>Your CareerReady AI Account Has Been Approved</title></head>" +
                 "<body style='font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 24px; color: #1e293b;'>" +
                 "<div style='max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;'>" +
                 "  <div style='background: linear-gradient(135deg, #0f172a 0%%, #1e3a8a 100%%); padding: 32px 28px; text-align: center; color: #ffffff;'>" +
-                "    <h1 style='margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px;'>Placement Readiness System</h1>" +
-                "    <p style='margin: 8px 0 0; font-size: 14px; opacity: 0.85;'>Official Account Notification</p>" +
+                "    <h1 style='margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px;'>CareerReady AI</h1>" +
+                "    <p style='margin: 8px 0 0; font-size: 14px; opacity: 0.85;'>Placement Readiness System &bull; Account Approved</p>" +
                 "  </div>" +
                 "  <div style='padding: 32px 28px;'>" +
                 "    <div style='display: inline-block; background: #ecfdf5; color: #065f46; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 9999px; text-transform: uppercase; margin-bottom: 16px; border: 1px solid #a7f3d0;'>Account Approved</div>" +
-                "    <h2 style='margin: 0 0 16px; font-size: 20px; font-weight: 600; color: #0f172a;'>Welcome, %s!</h2>" +
-                "    <p style='margin: 0 0 20px; font-size: 15px; line-height: 1.6; color: #475569;'>Your account registration for the <strong>CareerReady Placement Portal</strong> has been verified and approved by the Administrator. You now have full access to manage students, assessments, and placement analytics.</p>" +
-                "    <div style='background: #f1f5f9; border-radius: 8px; padding: 18px; margin: 0 0 24px; border-left: 4px solid #3b82f6;'>" +
+                "    <h2 style='margin: 0 0 16px; font-size: 20px; font-weight: 600; color: #0f172a;'>Hello %s,</h2>" +
+                "    <p style='margin: 0 0 20px; font-size: 15px; line-height: 1.6; color: #475569;'>Your <strong>%s</strong> registration request for CareerReady AI has been approved by the Admin. Your account is now approved. You can sign in using your registered email and existing login method.</p>" +
+                "    <div style='background: #f1f5f9; border-radius: 8px; padding: 18px; margin: 0 0 24px; border-left: 4px solid #10b981;'>" +
                 "      <p style='margin: 0 0 8px; font-size: 13px; color: #64748b;'><strong>Registered Email:</strong> %s</p>" +
                 "      <p style='margin: 0 0 8px; font-size: 13px; color: #64748b;'><strong>Assigned Role:</strong> <span style='color: #1e40af; font-weight: 600;'>%s</span></p>" +
-                "      <p style='margin: 0; font-size: 13px; color: #64748b;'><strong>Account Status:</strong> <span style='color: #059669; font-weight: 600;'>ACTIVE</span></p>" +
+                "      <p style='margin: 0; font-size: 13px; color: #64748b;'><strong>Account Status:</strong> <span style='color: #059669; font-weight: 600;'>APPROVED</span></p>" +
                 "    </div>" +
                 "    <div style='text-align: center; margin: 28px 0;'>" +
-                "      <a href='http://localhost:5173/login' style='display: inline-block; background: #2563eb; color: #ffffff; text-decoration: none; padding: 12px 32px; border-radius: 8px; font-weight: 600; font-size: 15px; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);'>Login to Placement Portal</a>" +
+                "      <a href='%s' style='display: inline-block; background: #2563eb; color: #ffffff; text-decoration: none; padding: 12px 32px; border-radius: 8px; font-weight: 600; font-size: 15px; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);'>Sign In to CareerReady AI</a>" +
                 "    </div>" +
-                "    <p style='margin: 0; font-size: 13px; line-height: 1.5; color: #94a3b8; text-align: center;'>If you did not request this account or believe this is an error, please contact your administrator.</p>" +
+                "    <p style='margin: 24px 0 0; font-size: 14px; color: #475569;'>Regards,<br><strong>CareerReady AI Administration</strong></p>" +
                 "  </div>" +
                 "  <div style='background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px 28px; text-align: center; font-size: 12px; color: #94a3b8;'>" +
-                "    &copy; %d CareerReady Placement Readiness Analytics System. All rights reserved." +
+                "    &copy; %d CareerReady AI Placement Readiness System. All rights reserved." +
                 "  </div>" +
                 "</div>" +
                 "</body></html>",
-                displayName, recipientEmail, displayRole, Year.now().getValue()
+                displayName, displayRole, recipientEmail, displayRole, loginUrl, Year.now().getValue()
         );
 
         return sendMimeEmail(recipientEmail, subject, textBody, htmlBody);
@@ -185,6 +199,130 @@ public class EmailServiceImpl implements EmailService {
         return sendMimeEmail(recipientEmail, subject, textBody, htmlBody);
     }
 
+    @Override
+    public boolean sendPendingRegistrationAdminNotification(
+            String applicantName,
+            String applicantEmail,
+            String roleName,
+            String identifier,
+            String departmentName,
+            String phone,
+            java.time.LocalDateTime registeredAt) {
+
+        String targetAdmin = (adminNotificationEmail != null && !adminNotificationEmail.isBlank())
+                ? adminNotificationEmail.trim()
+                : "inbaasara@gmail.com";
+
+        String normalizedRole = "Staff";
+        if (roleName != null && !roleName.isBlank()) {
+            String upper = roleName.toUpperCase().trim();
+            if (upper.contains("HOD")) {
+                normalizedRole = "HOD";
+            } else if (upper.contains("STAFF")) {
+                normalizedRole = "Staff";
+            } else if (upper.contains("ADMIN")) {
+                normalizedRole = "Admin";
+            } else {
+                normalizedRole = roleName.trim();
+            }
+        }
+
+        String subject = String.format("New %s Registration — Pending Approval", normalizedRole);
+        String displayName = (applicantName != null && !applicantName.isBlank()) ? applicantName.trim() : "Applicant";
+        String displayRole = normalizedRole.equals("Admin") ? "Administrator" : (normalizedRole.equals("HOD") ? "Placement HOD" : "Placement Staff");
+        String displayIdentifier = (identifier != null && !identifier.isBlank()) ? identifier.trim() : "Not Applicable";
+        String displayDept = (departmentName != null && !departmentName.isBlank()) ? departmentName.trim() : "General";
+        String displayPhone = (phone != null && !phone.isBlank()) ? phone.trim() : "Not Provided";
+        String approvalUrl = (frontendUrl != null && !frontendUrl.isBlank()) ? frontendUrl.replaceAll("/+$", "") + "/admin/approvals" : "http://localhost:5173/admin/approvals";
+
+        java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a");
+        String formattedDate = (registeredAt != null) ? registeredAt.format(dtf) : java.time.LocalDateTime.now().format(dtf);
+
+        String textBody = String.format(
+                "%s\n\n" +
+                "Dear Administrator,\n\n" +
+                "A new %s account registration request has been submitted and is currently waiting for your review and approval.\n\n" +
+                "Applicant Registration Details:\n" +
+                "- Full Name: %s\n" +
+                "- Registered Email: %s\n" +
+                "- Role: %s\n" +
+                "- Identifier / ID: %s\n" +
+                "- Department: %s\n" +
+                "- Contact Phone: %s\n" +
+                "- Registration Date: %s\n" +
+                "- Account Status: PENDING APPROVAL\n\n" +
+                "This account has not been granted login access. The request is waiting for Admin review.\n\n" +
+                "Please review the request and approve or reject it through the Admin Console:\n" +
+                "%s\n\n" +
+                "Regards,\n" +
+                "CareerReady AI Administration",
+                subject, normalizedRole, displayName, applicantEmail, displayRole, displayIdentifier, displayDept, displayPhone, formattedDate, approvalUrl
+        );
+
+        String htmlBody = String.format(
+                "<!DOCTYPE html>" +
+                "<html><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'>" +
+                "<title>%s</title></head>" +
+                "<body style='font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 24px; color: #1e293b;'>" +
+                "<div style='max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 14px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;'>" +
+                "  <div style='background: linear-gradient(135deg, #0f172a 0%%, #1e3a8a 100%%); padding: 32px 28px; text-align: center; color: #ffffff;'>" +
+                "    <h1 style='margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.5px;'>CareerReady AI</h1>" +
+                "    <p style='margin: 8px 0 0; font-size: 13px; opacity: 0.9;'>Placement Readiness Analytics System &bull; Admin Notification</p>" +
+                "  </div>" +
+                "  <div style='padding: 32px 28px;'>" +
+                "    <div style='display: inline-block; background: #fef3c7; color: #92400e; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 9999px; text-transform: uppercase; margin-bottom: 16px; border: 1px solid #fde68a;'>Pending Approval</div>" +
+                "    <h2 style='margin: 0 0 16px; font-size: 20px; font-weight: 600; color: #0f172a;'>New %s Registration</h2>" +
+                "    <p style='margin: 0 0 20px; font-size: 14px; line-height: 1.6; color: #475569;'>A new user has submitted a registration request for the <strong>%s</strong> role and is waiting for your review. Please review the applicant details below in the Admin Console before granting system privileges.</p>" +
+                "    <div style='background: #f8fafc; border-radius: 8px; padding: 20px; margin: 0 0 24px; border: 1px solid #e2e8f0; border-left: 4px solid #f59e0b;'>" +
+                "      <table style='width: 100%%; font-size: 13px; line-height: 1.8; color: #334155; border-collapse: collapse;'>" +
+                "        <tr><td style='width: 140px; color: #64748b; font-weight: 600;'>Applicant Name:</td><td><strong style='color: #0f172a;'>%s</strong></td></tr>" +
+                "        <tr><td style='color: #64748b; font-weight: 600;'>Registered Email:</td><td><a href='mailto:%s' style='color: #2563eb; text-decoration: none;'>%s</a></td></tr>" +
+                "        <tr><td style='color: #64748b; font-weight: 600;'>Applicant Role:</td><td><span style='background: #eff6ff; color: #1e40af; padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 12px;'>%s</span></td></tr>" +
+                "        <tr><td style='color: #64748b; font-weight: 600;'>Identifier / ID:</td><td><code style='background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-size: 12px; color: #0f172a;'>%s</code></td></tr>" +
+                "        <tr><td style='color: #64748b; font-weight: 600;'>Department:</td><td>%s</td></tr>" +
+                "        <tr><td style='color: #64748b; font-weight: 600;'>Contact Phone:</td><td>%s</td></tr>" +
+                "        <tr><td style='color: #64748b; font-weight: 600;'>Registration Date:</td><td>%s</td></tr>" +
+                "        <tr><td style='color: #64748b; font-weight: 600;'>Account Status:</td><td><span style='background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;'>PENDING APPROVAL</span></td></tr>" +
+                "      </table>" +
+                "    </div>" +
+                "    <p style='margin: 0 0 20px; font-size: 13px; color: #64748b; line-height: 1.5;'>This account has not been granted login access. The request is waiting for Admin review. Please sign in to the Admin Console to review, approve, or reject this request.</p>" +
+                "    <div style='text-align: center; margin: 28px 0;'>" +
+                "      <a href='%s' style='display: inline-block; background: #2563eb; color: #ffffff; text-decoration: none; padding: 13px 32px; border-radius: 8px; font-weight: 600; font-size: 14px; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);'>Open Admin Console</a>" +
+                "    </div>" +
+                "    <p style='margin: 0; font-size: 12px; color: #94a3b8; text-align: center; word-break: break-all;'>Direct Link: <a href='%s' style='color: #2563eb;'>%s</a></p>" +
+                "  </div>" +
+                "  <div style='background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px 28px; text-align: center; font-size: 12px; color: #94a3b8;'>" +
+                "    &copy; %d CareerReady AI Placement Readiness Analytics System. All rights reserved." +
+                "  </div>" +
+                "</div>" +
+                "</body></html>",
+                subject, normalizedRole, displayRole, displayName, applicantEmail, applicantEmail,
+                displayRole, displayIdentifier, displayDept, displayPhone, formattedDate,
+                approvalUrl, approvalUrl, approvalUrl, Year.now().getValue()
+        );
+
+        log.info("[ADMIN REGISTRATION NOTIFICATION] Dispatching informational notification to: {} for applicant: {} ({})", targetAdmin, applicantEmail, normalizedRole);
+        return sendMimeEmail(targetAdmin, subject, textBody, htmlBody);
+    }
+
+    @Override
+    public boolean sendAdminRegistrationNotification(String applicantName, String applicantEmail, String roleName, String identifier, String departmentName, String phone) {
+        return sendPendingRegistrationAdminNotification(applicantName, applicantEmail, roleName, identifier, departmentName, phone, java.time.LocalDateTime.now());
+    }
+
+    @Override
+    public boolean sendStaffRegistrationNotification(
+            String applicantName,
+            String applicantEmail,
+            String employeeId,
+            String departmentName,
+            String phone,
+            java.time.LocalDateTime registeredAt,
+            String approveUrl,
+            String rejectUrl) {
+        return sendPendingRegistrationAdminNotification(applicantName, applicantEmail, "Placement Staff", employeeId, departmentName, phone, registeredAt);
+    }
+
     private boolean sendMimeEmail(String toEmail, String subject, String textBody, String htmlBody) {
         if (toEmail == null || toEmail.trim().isEmpty()) {
             log.warn("Cannot send email: recipient email is empty");
@@ -201,10 +339,18 @@ public class EmailServiceImpl implements EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
 
             String sender = (smtpUsername != null && !smtpUsername.isBlank()) ? smtpUsername.trim() : fromEmail;
-            helper.setFrom(new InternetAddress(sender, "CareerReady Placement Portal"));
+            InternetAddress fromAddress = new InternetAddress(sender, "CareerReady AI");
+            helper.setFrom(fromAddress);
+            helper.setReplyTo(fromAddress);
             helper.setTo(toEmail.trim());
             helper.setSubject(subject);
             helper.setText(textBody, htmlBody);
+
+            // Set RFC compliant and anti-spam headers
+            mimeMessage.setHeader("Auto-Submitted", "auto-generated");
+            mimeMessage.setHeader("X-Auto-Response-Suppress", "All");
+            mimeMessage.setHeader("X-Priority", "3");
+            mimeMessage.setHeader("Importance", "Normal");
 
             mailSender.send(mimeMessage);
             log.info("Email notification successfully sent to {} with subject: '{}'", toEmail, subject);

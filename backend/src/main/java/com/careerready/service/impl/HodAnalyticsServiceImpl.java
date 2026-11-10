@@ -77,12 +77,16 @@ public class HodAnalyticsServiceImpl implements HodAnalyticsService {
 
             long count = deptStudents.size();
             double cgpaSum = 0.0;
+            int cgpaCount = 0;
             double readinessSum = 0.0;
             int validCount = 0;
             long atRiskCount = 0;
 
             for (Student s : deptStudents) {
-                if (s.getCgpa() != null) cgpaSum += s.getCgpa();
+                if (s.getCgpa() != null) {
+                    cgpaSum += s.getCgpa();
+                    cgpaCount++;
+                }
                 ReadinessResponse pred = predictionService.getLatestPredictionForStudent(s.getId());
                 if (pred != null) {
                     if (pred.getReadinessScore() != null) {
@@ -95,7 +99,7 @@ public class HodAnalyticsServiceImpl implements HodAnalyticsService {
                 }
             }
 
-            double avgCgpa = count > 0 ? Math.round((cgpaSum / count) * 100.0) / 100.0 : 0.0;
+            Double avgCgpa = cgpaCount > 0 ? Math.round((cgpaSum / cgpaCount) * 100.0) / 100.0 : null;
             Double avgReadiness = validCount > 0 ? Math.round((readinessSum / validCount) * 10.0) / 10.0 : null;
 
             result.add(DepartmentAnalyticsDto.builder()

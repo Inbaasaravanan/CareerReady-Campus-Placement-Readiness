@@ -29,9 +29,12 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -69,6 +72,12 @@ class AuthServiceTest {
     private com.careerready.service.EmailService emailService;
 
     @Mock
+    private com.careerready.service.StaffApprovalService staffApprovalService;
+
+    @Mock
+    private com.careerready.service.impl.StaffRegistrationNotificationDispatcher staffNotificationDispatcher;
+
+    @Mock
     private PasswordEncoder passwordEncoder;
 
     private JwtTokenProvider tokenProvider;
@@ -81,7 +90,7 @@ class AuthServiceTest {
     @BeforeEach
     void setUp() {
         tokenProvider = new JwtTokenProvider("404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970", 3600000L);
-        authService = new AuthServiceImpl(userRepository, studentRepository, departmentRepository, skillRepository, studentSkillRepository, studentAcademicRecordRepository, passwordEncoder, tokenProvider, staffRepository, hodRepository, passwordResetTokenRepository, emailService);
+        authService = new AuthServiceImpl(userRepository, studentRepository, departmentRepository, skillRepository, studentSkillRepository, studentAcademicRecordRepository, passwordEncoder, tokenProvider, staffRepository, hodRepository, passwordResetTokenRepository, emailService, staffApprovalService, staffNotificationDispatcher);
 
         testUser = User.builder()
                 .id(1L)
@@ -175,5 +184,115 @@ class AuthServiceTest {
         when(studentRepository.existsByRegisterNumber("23CSE001")).thenReturn(true);
 
         assertThrows(DuplicateResourceException.class, () -> authService.registerStudent(req));
+    }
+
+    @Test
+    @DisplayName("Should register Staff with PENDING_APPROVAL and send notification to designated admin")
+    void testRegisterStaff_PendingApprovalAndNotificationSent() {
+        com.careerready.dto.auth.StaffRegisterRequest req = com.careerready.dto.auth.StaffRegisterRequest.builder()
+                .name("Dr. Ramesh")
+                .email("ramesh@institution.edu")
+                .password("Password123!")
+                .employeeId("EMP-STF-99")
+                .departmentId(1L)
+                .phone("+919876543210")
+                .build();
+
+        when(userRepository.existsByEmail("ramesh@institution.edu")).thenReturn(false);
+        when(staffRepository.existsByEmployeeId("EMP-STF-99")).thenReturn(false);
+        when(departmentRepository.findById(1L)).thenReturn(Optional.of(testDept));
+        when(passwordEncoder.encode(anyString())).thenReturn("encoded_pass");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User u = invocation.getArgument(0);
+            u.setId(99L);
+            return u;
+        });
+        when(staffApprovalService.generateTokensForStaff(any(User.class)))
+                .thenReturn(new com.careerready.service.StaffApprovalService.TokenPair("mock-app-tok", "mock-rej-tok"));
+
+        authService.registerStaff(req);
+
+        verify(staffApprovalService).generateTokensForStaff(any(User.class));
+        verify(staffNotificationDispatcher).dispatchNotificationAsync(
+                eq("Dr. Ramesh"),
+                eq("ramesh@institution.edu"),
+                eq("EMP-STF-99"),
+                eq("Computer Science and Engineering"),
+                eq("+919876543210"),
+                any(),
+                contains("mock-app-tok"),
+                contains("mock-rej-tok")
+        );
+    }
+
+    @Test
+    @DisplayName("Should register Admin with PENDING_APPROVAL and send notification to designated admin")
+    void testRegisterAdmin_PendingApprovalAndNotificationSent() {
+        com.careerready.dto.auth.AdminRegisterRequest req = com.careerready.dto.auth.AdminRegisterRequest.builder()
+                .name("Inbaa Admin")
+                .email("inbaa.admin@careerready.ai")
+                .password("AdminSecret123!")
+                .phone("+919123456789")
+                .build();
+
+        when(userRepository.existsByEmail("inbaa.admin@careerready.ai")).thenReturn(false);
+        when(passwordEncoder.encode(anyString())).thenReturn("encoded_admin_pass");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User u = invocation.getArgument(0);
+            u.setId(88L);
+            return u;
+        });
+
+        authService.registerAdmin(req);
+
+        verify(emailService).sendAdminRegistrationNotification(
+                eq("Inbaa Admin"),
+                eq("inbaa.admin@careerready.ai"),
+                eq("Administrator"),
+                eq("ADMIN-REQ-88"),
+                eq("System Administration"),
+                eq("+919123456789")
+        );
+    }
+
+    @Test
+    @DisplayName("Should prevent login if account status is PENDING_APPROVAL")
+    void testLogin_PendingApproval_ThrowsUnauthorized() {
+        testUser.setStatus(UserStatus.PENDING_APPROVAL);
+        when(userRepository.findByEmail("student@careerready.ai")).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.matches("pass123", "encoded_pass")).thenReturn(true);
+
+        LoginRequest req = new LoginRequest("student@careerready.ai", "pass123", "STUDENT");
+
+        UnauthorizedException ex = assertThrows(UnauthorizedException.class, () -> authService.login(req));
+        assertTrue(ex.getMessage().contains("awaiting administrator approval"));
+    }
+
+    @Test
+    @DisplayName("Should prevent login if account status is REJECTED")
+    void testLogin_Rejected_ThrowsUnauthorized() {
+        testUser.setStatus(UserStatus.REJECTED);
+        when(userRepository.findByEmail("student@careerready.ai")).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.matches("pass123", "encoded_pass")).thenReturn(true);
+
+        LoginRequest req = new LoginRequest("student@careerready.ai", "pass123", "STUDENT");
+
+        UnauthorizedException ex = assertThrows(UnauthorizedException.class, () -> authService.login(req));
+        assertTrue(ex.getMessage().contains("rejected"));
+    }
+
+    @Test
+    @DisplayName("Should allow login if account status is APPROVED")
+    void testLogin_Approved_Success() {
+        testUser.setStatus(UserStatus.APPROVED);
+        when(userRepository.findByEmail("student@careerready.ai")).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.matches("pass123", "encoded_pass")).thenReturn(true);
+        when(studentRepository.findByUserId(1L)).thenReturn(Optional.of(testStudent));
+
+        LoginRequest req = new LoginRequest("student@careerready.ai", "pass123", "STUDENT");
+
+        AuthResponse res = authService.login(req);
+        assertNotNull(res.getToken());
+        assertEquals(UserStatus.APPROVED.name(), res.getStatus());
     }
 }

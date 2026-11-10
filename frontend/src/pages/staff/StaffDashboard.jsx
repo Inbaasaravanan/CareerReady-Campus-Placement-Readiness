@@ -8,6 +8,7 @@ import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
 import { ProgressBar } from '../../components/common/ProgressBar';
 import { LoadingState, ErrorState, EmptyState } from '../../components/common/StateViews';
+import { Modal } from '../../components/common/Modal';
 import {
   UsersIcon,
   TargetIcon,
@@ -25,6 +26,8 @@ export const StaffDashboard = () => {
   const [commonSkillGaps, setCommonSkillGaps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'table'
+  const [selectedStudent, setSelectedStudent] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -34,7 +37,7 @@ export const StaffDashboard = () => {
         staffService.getDashboardStats(),
         staffService.getStudents(),
         staffService.getMyStudents().catch(() => []),
-        hodService.getDepartmentAnalytics().catch(() => []),
+        staffService.getDepartmentAnalytics().catch(() => hodService.getDepartmentAnalytics().catch(() => [])),
         staffService.getSkillGapsAnalytics().catch(() => [])
       ]);
       setStats(dashStats);
@@ -134,14 +137,104 @@ export const StaffDashboard = () => {
             <h3 className="section-heading-sm">My Assigned Students (Mentees)</h3>
             <p className="form-hint">Candidates paired with you for direct placement coaching and performance surveillance</p>
           </div>
-          <Link to="/staff/students" style={{ fontSize: '0.8125rem', fontWeight: 600 }}>
-            View Full List ({myStudents.length}) &rarr;
-          </Link>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {myStudents.length > 0 && (
+              <div className="view-mode-toggle">
+                <button
+                  type="button"
+                  className={`view-mode-btn ${viewMode === 'cards' ? 'active' : ''}`}
+                  onClick={() => setViewMode('cards')}
+                >
+                  Cards
+                </button>
+                <button
+                  type="button"
+                  className={`view-mode-btn ${viewMode === 'table' ? 'active' : ''}`}
+                  onClick={() => setViewMode('table')}
+                >
+                  Table
+                </button>
+              </div>
+            )}
+            <Link to="/staff/students" style={{ fontSize: '0.8125rem', fontWeight: 600 }}>
+              View Full List ({myStudents.length}) &rarr;
+            </Link>
+          </div>
         </div>
 
         {myStudents.length === 0 ? (
           <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-            No students have been assigned to you yet.
+            No students have been assigned to you yet. Once allocated by the HOD, candidate cards will appear here.
+          </div>
+        ) : viewMode === 'cards' ? (
+          <div className="assigned-students-grid">
+            {myStudents.slice(0, 6).map((s, idx) => {
+              const name = s.studentName || s.name || 'Candidate';
+              const regNo = s.registerNumber || s.regNo || 'Not Provided';
+              const dept = s.department || s.departmentName || 'General';
+              const readiness = s.readinessScore != null ? Number(s.readinessScore) : null;
+              const classification = s.classificationDisplay || s.classification || (readiness != null && readiness >= 70 ? 'Ready' : readiness != null && readiness >= 55 ? 'Needs Improvement' : 'At Risk');
+
+              return (
+                <div key={idx} className="assigned-student-card">
+                  <div>
+                    <div className="assigned-student-card-header">
+                      <div className="assigned-student-identity">
+                        <span className="assigned-student-name" title={name}>{name}</span>
+                        <span className="assigned-student-reg">{regNo}</span>
+                        <span className="assigned-student-dept">{dept}</span>
+                      </div>
+                      <Badge variant={readiness != null && readiness >= 70 ? 'success' : readiness != null && readiness >= 55 ? 'warning' : 'danger'}>
+                        {classification}
+                      </Badge>
+                    </div>
+
+                    <div className="assigned-student-scores" style={{ marginTop: '14px' }}>
+                      <div className="assigned-score-cell">
+                        <span className="assigned-score-label">Aptitude</span>
+                        <span className="assigned-score-value">
+                          {s.aptitudeScore != null ? `${s.aptitudeScore}%` : 'Pending'}
+                        </span>
+                      </div>
+                      <div className="assigned-score-cell">
+                        <span className="assigned-score-label">Technical</span>
+                        <span className="assigned-score-value">
+                          {s.technicalScore != null ? `${s.technicalScore}%` : 'Pending'}
+                        </span>
+                      </div>
+                      <div className="assigned-score-cell">
+                        <span className="assigned-score-label">Readiness</span>
+                        <span
+                          className="assigned-score-value"
+                          style={{
+                            color: readiness != null && readiness >= 70 ? 'var(--color-primary)' : 'var(--status-at-risk-bar)',
+                            fontWeight: 800
+                          }}
+                        >
+                          {readiness != null ? `${readiness}%` : 'Pending'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="assigned-student-actions">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedStudent(s)}
+                    >
+                      View Profile
+                    </Button>
+                    <Link
+                      to="/staff/students"
+                      style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-primary)' }}
+                    >
+                      Surveillance &rarr;
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         ) : (
           <div className="table-container">
@@ -155,10 +248,11 @@ export const StaffDashboard = () => {
                   <th>Technical</th>
                   <th>Readiness Score</th>
                   <th>Classification</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {myStudents.slice(0, 5).map((s, idx) => (
+                {myStudents.slice(0, 6).map((s, idx) => (
                   <tr key={idx}>
                     <td className="table-cell-mono" style={{ fontWeight: 600 }}>{s.registerNumber || s.regNo || 'Not Provided'}</td>
                     <td className="table-cell-bold">{s.studentName || s.name}</td>
@@ -178,6 +272,15 @@ export const StaffDashboard = () => {
                       <Badge variant={s.readinessScore != null && Number(s.readinessScore) >= 70 ? 'success' : s.readinessScore != null && Number(s.readinessScore) >= 55 ? 'warning' : 'danger'}>
                         {s.classificationDisplay || s.classification || 'Evaluating'}
                       </Badge>
+                    </td>
+                    <td>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedStudent(s)}
+                      >
+                        View Profile
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -296,32 +399,52 @@ export const StaffDashboard = () => {
             </thead>
             <tbody>
               {departmentMetrics.length > 0 ? (
-                departmentMetrics.map((dept, idx) => (
-                  <tr key={idx}>
-                    <td className="table-cell-bold">{dept.name}</td>
-                    <td><Badge variant="outline">{dept.code}</Badge></td>
-                    <td><strong>{dept.studentsCount} Students</strong></td>
-                    <td>{dept.averageCGPA} / 10</td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontWeight: 700 }}>{dept.averageReadiness}%</span>
-                        <div style={{ width: '80px' }}>
-                          <ProgressBar value={dept.averageReadiness} variant={dept.averageReadiness >= 75 ? 'ready' : 'needsImprovement'} />
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <span style={{ fontWeight: 700, color: dept.atRiskCount > 0 ? 'var(--status-at-risk-bar)' : 'inherit' }}>
-                        {dept.atRiskCount} Flagged
-                      </span>
-                    </td>
-                    <td>
-                      <Badge status={dept.averageReadiness >= 75 ? 'Ready' : 'Needs Improvement'}>
-                        {dept.averageReadiness >= 75 ? 'On Track' : 'Needs Focus'}
-                      </Badge>
-                    </td>
-                  </tr>
-                ))
+                departmentMetrics.map((dept, idx) => {
+                  const deptName = dept.name || dept.departmentName || dept.department || 'Department';
+                  const deptCode = dept.code || '—';
+                  const candidateCount = dept.studentCount != null ? dept.studentCount : (dept.studentsCount || 0);
+                  const cgpaVal = dept.averageCgpa != null ? dept.averageCgpa : (dept.averageCGPA != null && dept.averageCGPA !== 'N/A' ? dept.averageCGPA : null);
+                  const hasReadiness = dept.averageReadiness != null && !isNaN(dept.averageReadiness);
+                  const readinessVal = hasReadiness ? dept.averageReadiness : null;
+                  const atRisk = dept.atRiskCount || 0;
+
+                  return (
+                    <tr key={dept.departmentId || idx}>
+                      <td className="table-cell-bold">{deptName}</td>
+                      <td><Badge variant="outline">{deptCode}</Badge></td>
+                      <td><strong>{candidateCount} Students</strong></td>
+                      <td>{cgpaVal != null ? `${cgpaVal} / 10` : <span style={{ color: 'var(--color-text-muted)' }}>N/A</span>}</td>
+                      <td>
+                        {hasReadiness ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontWeight: 700 }}>{readinessVal}%</span>
+                            <div style={{ width: '80px' }}>
+                              <ProgressBar value={readinessVal} variant={readinessVal >= 75 ? 'ready' : 'needsImprovement'} />
+                            </div>
+                          </div>
+                        ) : (
+                          <span style={{ color: 'var(--color-text-muted)', fontSize: '0.8125rem' }}>No Assessment Data</span>
+                        )}
+                      </td>
+                      <td>
+                        <span style={{ fontWeight: 700, color: atRisk > 0 ? 'var(--status-at-risk-bar)' : 'inherit' }}>
+                          {atRisk} Flagged
+                        </span>
+                      </td>
+                      <td>
+                        {candidateCount === 0 ? (
+                          <Badge variant="outline">No Candidates</Badge>
+                        ) : hasReadiness ? (
+                          <Badge status={readinessVal >= 75 ? 'Ready' : 'Needs Improvement'}>
+                            {readinessVal >= 75 ? 'On Track' : 'Needs Focus'}
+                          </Badge>
+                        ) : (
+                          <Badge status="Evaluating">Pending</Badge>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
                   <td colSpan="7" style={{ textAlign: 'center', padding: '24px', color: 'var(--color-text-muted)' }}>
@@ -333,6 +456,102 @@ export const StaffDashboard = () => {
           </table>
         </div>
       </div>
+
+      {/* Candidate Dossier Modal */}
+      {selectedStudent && (
+        <Modal
+          isOpen={true}
+          onClose={() => setSelectedStudent(null)}
+          title={`Candidate Dossier: ${selectedStudent.studentName || selectedStudent.name}`}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border)', paddingBottom: '12px' }}>
+              <div>
+                <span className="form-hint">Register Number</span>
+                <div style={{ fontWeight: 700, fontSize: '1.125rem' }}>{selectedStudent.registerNumber || selectedStudent.regNo || 'Not Provided'}</div>
+              </div>
+              <Badge status={selectedStudent.classificationDisplay || selectedStudent.classification}>
+                {selectedStudent.classificationDisplay || selectedStudent.classification || 'Evaluating'}
+              </Badge>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', padding: '16px', backgroundColor: 'var(--color-bg-subtle)', borderRadius: 'var(--radius-md)' }}>
+              <div>
+                <span className="form-hint">Aptitude Score</span>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-navy-950)' }}>
+                  {selectedStudent.aptitudeScore != null ? `${selectedStudent.aptitudeScore}%` : 'Pending'}
+                </div>
+              </div>
+              <div>
+                <span className="form-hint">Technical Score</span>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-navy-950)' }}>
+                  {selectedStudent.technicalScore != null ? `${selectedStudent.technicalScore}%` : 'Pending'}
+                </div>
+              </div>
+              <div>
+                <span className="form-hint">Readiness Score</span>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>
+                  {selectedStudent.readinessScore != null ? `${selectedStudent.readinessScore}%` : 'Pending'}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div>
+                <span className="form-hint">Department</span>
+                <div style={{ fontWeight: 600, marginTop: '2px' }}>{selectedStudent.department || selectedStudent.departmentName || 'Not Provided'}</div>
+              </div>
+              <div>
+                <span className="form-hint">Academic Standing</span>
+                <div style={{ fontWeight: 600, marginTop: '2px' }}>
+                  {selectedStudent.year || '4th Year'} • CGPA: {selectedStudent.cgpa != null ? Number(selectedStudent.cgpa).toFixed(2) : 'N/A'}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <span className="form-hint">Deficit Area / Skill Gaps</span>
+              <div style={{ marginTop: '6px' }}>
+                {selectedStudent.skillGaps && selectedStudent.skillGaps.length > 0 ? (
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {selectedStudent.skillGaps.map((gap, idx) => (
+                      <span
+                        key={idx}
+                        style={{
+                          fontSize: '0.75rem',
+                          padding: '4px 8px',
+                          backgroundColor: '#FEF2F2',
+                          color: '#DC2626',
+                          borderRadius: '4px',
+                          border: '1px solid #FCA5A5',
+                          fontWeight: 600
+                        }}
+                      >
+                        {typeof gap === 'string' ? gap : (gap.skillName || gap.name)}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <span style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
+                    {selectedStudent.deficitArea || 'No critical deficit area recorded.'}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: '1px solid var(--color-border)', paddingTop: '16px', marginTop: '4px' }}>
+              <Button variant="outline" onClick={() => setSelectedStudent(null)}>
+                Close
+              </Button>
+              <Link to="/staff/students" onClick={() => setSelectedStudent(null)}>
+                <Button variant="primary">
+                  Open Student Surveillance &rarr;
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

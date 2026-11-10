@@ -153,6 +153,31 @@ export const authService = {
   },
 
   /**
+   * Register a new Administrator (status: PENDING_APPROVAL)
+   */
+  async registerAdmin(adminData) {
+    try {
+      const payload = {
+        name: adminData.name ? adminData.name.trim() : '',
+        email: adminData.email ? adminData.email.trim() : '',
+        password: adminData.password,
+        phone: adminData.phone ? adminData.phone.trim() : null
+      };
+      const res = await api.post('/auth/register/admin', payload);
+      if (res.data && res.data.success) {
+        return {
+          success: true,
+          message: res.data.message || 'Registration submitted successfully. Your administrator account is awaiting approval.'
+        };
+      }
+      throw new Error(res.data?.message || 'Registration failed');
+    } catch (err) {
+      const msg = getErrorMessage(err);
+      throw new Error(msg);
+    }
+  },
+
+  /**
    * Fetch public departments list for registration forms
    */
   async getPublicDepartments() {
@@ -226,6 +251,36 @@ export const authService = {
         };
       }
       throw new Error(res.data?.message || 'Failed to reset password.');
+    } catch (err) {
+      throw new Error(getErrorMessage(err));
+    }
+  },
+
+  /**
+   * Verify staff approval token and fetch applicant details
+   */
+  async verifyStaffApprovalToken(token) {
+    try {
+      const res = await api.get('/auth/staff-approval/verify', { params: { token } });
+      if (res.data && res.data.success && res.data.data) {
+        return res.data.data;
+      }
+      throw new Error(res.data?.message || 'Invalid or unrecognized approval token.');
+    } catch (err) {
+      throw new Error(getErrorMessage(err));
+    }
+  },
+
+  /**
+   * Confirm staff approval or rejection action via POST
+   */
+  async confirmStaffApproval(token) {
+    try {
+      const res = await api.post('/auth/staff-approval/confirm', { token });
+      if (res.data && res.data.success && res.data.data) {
+        return res.data.data;
+      }
+      throw new Error(res.data?.message || 'Failed to process approval action.');
     } catch (err) {
       throw new Error(getErrorMessage(err));
     }

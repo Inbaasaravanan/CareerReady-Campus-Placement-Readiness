@@ -1092,6 +1092,10 @@ public class AdminServiceImpl implements AdminService {
                         deptId = hod.getDepartment().getId();
                     }
                 }
+            } else if (u.getRole() == com.careerready.enums.Role.ADMIN) {
+                deptName = "System Administration";
+                identifier = "ADMIN-REQ-" + u.getId();
+                phone = "N/A";
             }
 
             result.add(com.careerready.dto.admin.PendingApprovalDto.builder()
@@ -1123,7 +1127,11 @@ public class AdminServiceImpl implements AdminService {
         // 1. If user is already active or approved, prevent duplicate approvals and emails
         if (user.getStatus() == UserStatus.ACTIVE || user.getStatus() == UserStatus.APPROVED) {
             log.info("User {} (id {}) is already active/approved. Skipping redundant approval email.", user.getEmail(), userId);
-            return "User account is already active. No duplicate email was sent.";
+            return "User account is already active/approved. No duplicate action taken.";
+        }
+
+        if (user.getStatus() == UserStatus.REJECTED) {
+            throw new BadRequestException("Cannot approve account: This registration request was previously rejected.");
         }
 
         if (user.getStatus() != UserStatus.PENDING_APPROVAL) {
@@ -1150,19 +1158,45 @@ public class AdminServiceImpl implements AdminService {
                 hod.setApprovedBy("Administrator");
                 hodRepository.save(hod);
             }
+        } else if (user.getRole() == Role.ADMIN) {
+            if (!adminRepository.existsByUserId(userId)) {
+                adminRepository.save(Admin.builder().user(user).build());
+            }
         }
 
-        user.setStatus(UserStatus.ACTIVE);
+        user.setStatus(UserStatus.APPROVED);
 
         boolean emailSent = false;
         if (!Boolean.TRUE.equals(user.getApprovalEmailSent())) {
-            String roleName = user.getRole() == Role.PLACEMENT_STAFF ? "Placement Staff" : "Placement HOD";
-            emailSent = emailService.sendApprovalEmail(user.getEmail(), user.getName(), roleName);
             user.setApprovalEmailSent(true);
+            user = userRepository.save(user);
+
+            final String targetEmail = user.getEmail();
+            final String targetName = user.getName();
+            final String roleName = user.getRole() == Role.PLACEMENT_STAFF ? "Placement Staff" :
+                    (user.getRole() == Role.PLACEMENT_HOD ? "Placement HOD" : "Administrator");
+
+            if (org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()) {
+                org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                        new org.springframework.transaction.support.TransactionSynchronization() {
+                            @Override
+                            public void afterCommit() {
+                                try {
+                                    emailService.sendApprovalEmail(targetEmail, targetName, roleName);
+                                } catch (Exception ex) {
+                                    log.error("Failed to send approval email after commit to {}: {}", targetEmail, ex.getMessage());
+                                }
+                            }
+                        });
+                emailSent = true;
+            } else {
+                emailSent = emailService.sendApprovalEmail(targetEmail, targetName, roleName);
+            }
+        } else {
+            userRepository.save(user);
         }
 
-        userRepository.save(user);
-        log.info("Admin approved specific user {} (id {}, role {}) - Email notification sent: {}",
+        log.info("Admin approved specific user {} (id {}, role {}) - Approval committed to DB, email notification dispatched: {}",
                 user.getEmail(), user.getId(), user.getRole(), emailSent);
 
         if (emailSent) {
@@ -1178,12 +1212,24 @@ public class AdminServiceImpl implements AdminService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
+        if (user.getStatus() == UserStatus.REJECTED) {
+            return "User account is already rejected. No duplicate action taken.";
+        }
+
+        if (user.getStatus() == UserStatus.ACTIVE || user.getStatus() == UserStatus.APPROVED) {
+            throw new BadRequestException("Cannot reject an account that has already been approved. Please manage status from User Management.");
+        }
+
+        if (user.getStatus() != UserStatus.PENDING_APPROVAL) {
+            throw new BadRequestException("Only accounts with PENDING status can be rejected.");
+        }
+
         boolean emailSent = false;
         if (user.getRole() == Role.PLACEMENT_STAFF) {
             PlacementStaff staff = staffRepository.findByUserId(userId).orElse(null);
             if (staff != null) {
                 staff.setApprovedAt(LocalDateTime.now());
-                staff.setApprovedBy("Administrator");
+                staff.setApprovedBy("Administrator (Rejected)");
                 staffRepository.save(staff);
             }
             emailSent = emailService.sendRejectionEmail(user.getEmail(), user.getName(), "Placement Staff");
@@ -1191,10 +1237,12 @@ public class AdminServiceImpl implements AdminService {
             PlacementHod hod = hodRepository.findByUserId(userId).orElse(null);
             if (hod != null) {
                 hod.setApprovedAt(LocalDateTime.now());
-                hod.setApprovedBy("Administrator");
+                hod.setApprovedBy("Administrator (Rejected)");
                 hodRepository.save(hod);
             }
             emailSent = emailService.sendRejectionEmail(user.getEmail(), user.getName(), "Placement HOD");
+        } else if (user.getRole() == Role.ADMIN) {
+            emailSent = emailService.sendRejectionEmail(user.getEmail(), user.getName(), "Administrator");
         }
 
         user.setStatus(com.careerready.enums.UserStatus.REJECTED);

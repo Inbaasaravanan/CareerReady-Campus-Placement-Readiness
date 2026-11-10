@@ -123,21 +123,8 @@ try {
 }
 
 if (-not $backendHealthy) {
-    Write-Host "   -> Backend is not currently running. Launching Spring Boot backend..." -ForegroundColor Cyan
-    $backendDir = Join-Path $PSScriptRoot "backend"
-    Start-Process -FilePath "powershell" -ArgumentList "-NoExit", "-Command", "cd '$backendDir'; mvn spring-boot:run"
-    Write-Host "   -> Waiting for backend to initialize on port 8080..." -ForegroundColor Cyan
-    for ($i = 0; $i -lt 15; $i++) {
-        Start-Sleep -Seconds 2
-        try {
-            $bkRes = Invoke-RestMethod -Uri "http://127.0.0.1:8080/api/health" -Method Get -TimeoutSec 3 -ErrorAction Stop
-            if ($bkRes.success) {
-                $backendHealthy = $true
-                Write-Host "   [OK] Spring Boot Backend is now online and connected to MySQL!" -ForegroundColor Green
-                break
-            }
-        } catch { }
-    }
+    Write-Host "   [!] Spring Boot backend is NOT running on port 8080." -ForegroundColor Red
+    Write-Host "       To start the backend, run: cd 'backend'; mvn spring-boot:run in another terminal." -ForegroundColor Yellow
 }
 
 # 5. Mobile Configuration Preparation

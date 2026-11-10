@@ -75,6 +75,35 @@
   gap: var(--space-3);
 }
 
+/* Sticky navbar scroll margin so headings are never covered */
+html {
+  scroll-padding-top: 84px;
+}
+
+.landing-page-flow section[id],
+section[id] {
+  scroll-margin-top: 84px;
+}
+
+.navbar-mobile-toggle {
+  display: none;
+  background: transparent;
+  border: none;
+  color: var(--color-navy-950);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: var(--radius-md);
+  transition: background-color 0.2s ease;
+}
+
+.navbar-mobile-toggle:hover {
+  background-color: var(--color-bg-subtle);
+}
+
+.navbar-mobile-menu {
+  display: none;
+}
+
 /* ============================================================
    HERO SECTION
    ============================================================ */

@@ -31,7 +31,7 @@ export const Topbar = ({ onToggleSidebar, title = 'Analytics Workspace' }) => {
     };
 
     verifyHealth();
-    const interval = setInterval(verifyHealth, 15000);
+    const interval = setInterval(verifyHealth, 4000);
     return () => {
       isMounted = false;
       clearInterval(interval);

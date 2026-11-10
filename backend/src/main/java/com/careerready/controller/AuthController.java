@@ -5,15 +5,18 @@ import com.careerready.dto.auth.LoginRequest;
 import com.careerready.dto.auth.StudentRegisterRequest;
 import com.careerready.dto.common.ApiResponse;
 import com.careerready.service.AuthService;
+import com.careerready.service.StaffApprovalService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -23,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+    private final StaffApprovalService staffApprovalService;
 
     @PostMapping("/login")
     @Operation(summary = "User Login", description = "Authenticates user and returns JWT token with role information")
@@ -55,6 +59,12 @@ public class AuthController {
                 .body(ApiResponse.success("Registration submitted successfully. Your account is awaiting administrator approval.", null));
     }
 
+    @PostMapping("/register/admin")
+    @Operation(summary = "Admin Registration", description = "Admin self-registration is disabled")
+    public ResponseEntity<ApiResponse<Void>> registerAdmin(@Valid @RequestBody com.careerready.dto.auth.AdminRegisterRequest request) {
+        throw new org.springframework.security.access.AccessDeniedException("Admin self-registration is disabled.");
+    }
+
     @org.springframework.web.bind.annotation.GetMapping("/departments")
     @Operation(summary = "Public Departments List", description = "Lists academic departments for registration forms")
     public ResponseEntity<ApiResponse<java.util.List<com.careerready.dto.admin.DepartmentDto>>> getDepartments() {
@@ -80,5 +90,21 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody com.careerready.dto.auth.ResetPasswordRequest request) {
         authService.resetPassword(request);
         return ResponseEntity.ok(ApiResponse.success("Password has been reset successfully. You can now log in with your new password.", null));
+    }
+
+    @GetMapping("/staff-approval/verify")
+    @Operation(summary = "Verify Staff Approval Token", description = "Verifies token validity and returns applicant details for confirmation page without mutating state")
+    public ResponseEntity<ApiResponse<com.careerready.dto.auth.StaffApprovalVerificationDto>> verifyStaffApprovalToken(
+            @RequestParam("token") String token) {
+        com.careerready.dto.auth.StaffApprovalVerificationDto response = staffApprovalService.verifyToken(token);
+        return ResponseEntity.ok(ApiResponse.success(response.getMessage(), response));
+    }
+
+    @PostMapping("/staff-approval/confirm")
+    @Operation(summary = "Confirm Staff Approval Action", description = "Executes the Approve or Reject action bound to the secure single-use token")
+    public ResponseEntity<ApiResponse<com.careerready.dto.auth.StaffApprovalResultDto>> confirmStaffApproval(
+            @Valid @RequestBody com.careerready.dto.auth.StaffApprovalConfirmRequest request) {
+        com.careerready.dto.auth.StaffApprovalResultDto response = staffApprovalService.confirmApproval(request.getToken());
+        return ResponseEntity.ok(ApiResponse.success(response.getMessage(), response));
     }
 }

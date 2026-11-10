@@ -15,6 +15,7 @@ import { LoginPage } from '../pages/public/LoginPage';
 import { RegisterPage } from '../pages/public/RegisterPage';
 import { ForgotPasswordPage } from '../pages/public/ForgotPasswordPage';
 import { ResetPasswordPage } from '../pages/public/ResetPasswordPage';
+import { ApprovalConfirmationPage } from '../pages/public/ApprovalConfirmationPage';
 
 // Student Pages
 import { StudentDashboard } from '../pages/student/StudentDashboard';
@@ -84,6 +85,7 @@ export const AppRoutes = () => {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/register/:role" element={<RegisterPage />} />
+        <Route path="/approval/confirm" element={<ApprovalConfirmationPage />} />
       </Route>
 
       {/* Student Protected Routes */}

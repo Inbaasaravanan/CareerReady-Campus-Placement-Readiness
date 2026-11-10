@@ -29,6 +29,7 @@ import java.util.List;
 public class StaffController {
 
     private final StaffService staffService;
+    private final com.careerready.service.HodAnalyticsService hodAnalyticsService;
 
     @GetMapping("/students")
     @Operation(summary = "Get Students with Filters", description = "Retrieves student placement status with search, department, year, classification filters and pagination")
@@ -66,6 +67,13 @@ public class StaffController {
     @Operation(summary = "Get Institutional Skill Gap Analytics", description = "Identifies most prevalent skill gaps across all active recruitment requirements")
     public ResponseEntity<ApiResponse<SkillGapAnalyticsDto>> getSkillGapAnalytics() {
         SkillGapAnalyticsDto analytics = staffService.getSkillGapAnalytics();
+        return ResponseEntity.ok(ApiResponse.success(analytics));
+    }
+
+    @GetMapping("/analytics/departments")
+    @Operation(summary = "Get Departmental Readiness Analytics", description = "Retrieves live department metrics for staff dashboard")
+    public ResponseEntity<ApiResponse<List<com.careerready.dto.hod.DepartmentAnalyticsDto>>> getDepartmentAnalytics() {
+        List<com.careerready.dto.hod.DepartmentAnalyticsDto> analytics = hodAnalyticsService.getDepartmentAnalytics();
         return ResponseEntity.ok(ApiResponse.success(analytics));
     }
 
